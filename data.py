@@ -23,7 +23,7 @@ class Datas:
             test_number.append(random.randrange(0, parameter.total_furnace))
 
         for test in test_number:
-            self.datas[test]['state'] = 'on'
+            self.datas[test]['state'] = 'work'
             self.datas[test]['process'] = 'test_process'
 
 
@@ -71,9 +71,9 @@ class Datas:
 #이건 클라이언트에서 센서값을 실시간으로 담아두기 위해 사용
 class Sensors:
     def __init__(self, total_furnace:int):
-        self.total_furnace = total_furnace
+        self.total = total_furnace
         self.sensors = []
-        for i in range(total_furnace):
+        for i in range(self.total):
             self.sensors.append([])
         
 
@@ -82,7 +82,7 @@ class Sensors:
         
 
     def renew(self, sensor):
-        for i in range(self.total_furnace):
+        for i in range(self.total):
             if len(self.sensors[i]) >= 30:
                 self.sensors[i][:-1] = self.sensors[i][1:]
                 self.sensors[i][-1] = sensor[i]

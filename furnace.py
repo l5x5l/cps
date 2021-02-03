@@ -4,6 +4,7 @@ import parameter
 import time
 from packet import *
 from device import Device
+import sys
 
 class Furnace(Device):
     def __init__(self, host, port, number):
@@ -101,7 +102,7 @@ class Furnace(Device):
         self.process_time = time
 
 
-furnace = Furnace('165.246.44.141', 3050, 2)
+furnace = Furnace('165.246.44.141', 3050, sys.argv[1])
 furnace.connect()
 furnace.preprocessing()
 while True:

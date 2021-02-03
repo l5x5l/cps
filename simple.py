@@ -31,6 +31,9 @@ class Simple(device.Device):
             if sensors == 'not working':
                 self.send_msg('recv', self.sock)
                 continue
+            elif sensors == 'not yet':
+                self.send_msg('recv', self.sock)
+                continue
 
             steps = sensors.split('/')
             #pop 이유는 마지막 원소가 '' 이기 때문
@@ -41,21 +44,36 @@ class Simple(device.Device):
 
     def simple_recv_sensors(self):
         sensor_msg = self.recv_msg(self.sock)
-        print(sensor_msg)
+        furnace_sensor = sensor_msg.split('/')
+        #pop 이유는 마지막 원소가 '' 이기 때문
+        furnace_sensor.pop()
+        
 
+        '''
+        for i, sensor in enumerate(furnace_sensor):
+            print(str(i+1) + ' :', end = ' ' )
+            print(sensor)
+        '''
 
+        self.sensors.renew(furnace_sensor)
+        '''
+        print('---------------------------------')
+        for i in range(parameter.total_furnace):
+            sen = self.sensors.get_sensor(i + 1)
+            print(sen)
+        '''
+
+            
     def confirm_data(self):
         for i in range(parameter.total_furnace):
             print(str(i+1) + '----------------------------')
             temp = self.sensors.get_sensor(i + 1)
             print(temp)
 
+    
 
-    def get_process_id(self, index):
-        pass
 
-    #def simple_main(self):
-
+'''
         
 simple = Simple(parameter.host, parameter.port)
 simple.connect()
@@ -64,3 +82,4 @@ simple.confirm_data()
 while True:
     simple.simple_recv_sensors()
 simple.close()
+'''

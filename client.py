@@ -3,6 +3,8 @@ from device import Device
 import parameter
 from packet import *
 import time as t
+import threading
+import thread
 
 class Client(Device):
     def __init__(self, host:str, port:int):
@@ -82,15 +84,16 @@ class Client(Device):
         self.send_msg(send_pkt, self.sock)
 
 
-    def client_thread(self):
-        pass
-
     def close(self):
         self.sock.close()
 
 client = Client(parameter.host, parameter.port)
 client.connect()
+
+th = threading.Thread(target=thread.in_client_use, args=())
+th.start()
+
 while True:
     client.client_main()
-    t.sleep(1)
+    t.sleep(parameter.time_interval)
 client.close()

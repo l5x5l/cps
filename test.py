@@ -2,21 +2,27 @@ import pymysql
 import parameter
 import sys
 import time
-
+'''
 dbconn = pymysql.connect(host=parameter.host, user = parameter.user, passwd = parameter.password, db = parameter.db, charset = parameter.charset)
 dbcur = dbconn.cursor()
 
 
-while  True:
-    dbconn.commit()
-    sql = """select id from process"""
-    #sql = """select touch ,temp1, temp2, temp3, temp4, temp5, temp6, flow, press from furnace1 where id = '01_2101282006'"""
+
+dbconn.commit()
+sql = """select id from process"""
+#sql = """select touch ,temp1, temp2, temp3, temp4, temp5, temp6, flow, press from furnace1 where id = '01_2101282006'"""
+dbcur.execute(sql)
+result = list(dbcur.fetchall())
+
+for process in result:
+    number = int(process[0][:2])
+    sql = """select * from furnace""" + str(number) + """ where id = '""" + process[0] + """'"""
     dbcur.execute(sql)
-    result = list(dbcur.fetchall())
-    print(len(result))
-    processes = []
-    time.sleep(parameter.time_interval)
-'''
+    sensors = list(dbcur.fetchall())
+
+print(sensors[:])
+
+
 for i in range(parameter.total_furnace):
     processes.append(None)
 

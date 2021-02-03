@@ -6,6 +6,8 @@ import datetime
 from packet import *
 from data import Datas
 import time as t
+from simple import Simple
+
 
 def server_furnace(sock:socket.socket, number:int, datas:Datas, q:list, dbconn, lock):
     dbcur = dbconn.cursor()
@@ -18,10 +20,11 @@ def server_furnace(sock:socket.socket, number:int, datas:Datas, q:list, dbconn, 
     #연결한 열처리로가 작업을 시작할 때까지 대기후 작업을 시작하는 신호를 수신한 경우 공정 설정값 전송
     print(datas.datas[index]['state'])
     while datas.datas[index]['state'] == 'on':
-        lock.acquire()
+
         for elem in q:
             if elem[0] == str(number):
                 if elem[1] == 'start':
+                    lock.acquire()
                     process_id, mete, manu, inp, temper, time, gas = elem[2:]
                     sql = "INSERT INTO process(id, material, amount, manufacture, temperature, time, gas) VALUES(%s, %s, %s, %s, %s, %s, %s)"
                     val = (process_id, mete, int(inp), manu, int(temper), int(time), gas)
@@ -34,12 +37,13 @@ def server_furnace(sock:socket.socket, number:int, datas:Datas, q:list, dbconn, 
                     datas.working_furnace_data(number, process_id)
 
                     q.remove(elem)
+                    lock.release()
                     break
                 else:
+                    lock.acquire()
                     print('[server] ignore msg in q : ' + str(elem[0]) + " : " + elem[1])
-
-                q.remove(elem)
-        lock.release()
+                    q.remove(elem)
+                    lock.release()
         t.sleep(time_interval)
 
     print(datas.datas[index]['state'])
@@ -223,6 +227,8 @@ def server_simple(sock:socket.socket(), dbconn):
         result = list(dbcur.fetchall())
 
         if len(result) == 0:
+            sock.sendall(b'not yet')
+            sock.recv(1024)
             continue
 
         result.reverse()
@@ -243,7 +249,8 @@ def server_simple(sock:socket.socket(), dbconn):
         sock.sendall(temp.encode())
         #동기화 목적
         sock.recv(1024)
-    
+
+
     ##여기부터 이제 실시간으로 센서값 전송
     #print(last)
     
@@ -276,8 +283,6 @@ def server_simple(sock:socket.socket(), dbconn):
                 sql = """select * from furnace""" + str(number) +  """ where id = '""" + processes[i] + """' order by current desc limit 1"""
                 dbcur.execute(sql)
                 result = list(dbcur.fetchall())
-
-                print(result)
                 
                 #공정이 이제 막 시작되어 아직 센서값이 하나도 없는 경우
                 if len(result) == 0:
@@ -310,3 +315,83 @@ def server_simple(sock:socket.socket(), dbconn):
     
     sock.close()
     dbconn.close()
+
+def in_client_use():
+    s = Simple(parameter.host, parameter.port)
+    s.connect()
+    s.simple_first_recv()
+    #s.confirm_data()
+    while True:
+        s.simple_recv_sensors()
+    s.close()
+
+
+#dash앱에서 사용할 thread
+def monitoring(values, times, lock:threading.Lock):
+    
+    dbconn = pymysql.connect(host=parameter.host, user=parameter.user, password=parameter.password, database=parameter.db, charset=parameter.charset)
+    dbcur = dbconn.cursor()
+
+    #sql = """select id from process where output is null"""
+    sql = """select id from process"""
+    dbcur.execute(sql)
+    processes = dbcur.fetchall()
+
+    for process in processes:
+        number = int(process[0][:2])
+        sql = """select * from furnace""" + str(number) +  """ where id = '""" + process[0] + """' order by current desc limit 10"""
+        dbcur.execute(sql)
+        sensors = list(dbcur.fetchall())
+        sensors.reverse()
+
+        lock.acquire()
+        values[int(number) - 1] = [one_step[2:] for one_step in sensors]
+        times[int(number) - 1] = [get_time(one_step[0]) for one_step in sensors]
+        lock.release()
+
+    while True:
+        #sql = """select id from process where output is null"""
+        sql = """select id from process"""
+        dbcur.execute(sql)
+        processes = dbcur.fetchall()
+
+        for process in processes:
+            dbconn.commit()
+            number = int(process[0][:2])
+            index = number - 1
+            sql = """select * from furnace""" + str(number) +  """ where id = '""" + process[0] + """' order by current desc limit 1"""
+            dbcur.execute(sql)
+            sensors = list(dbcur.fetchall())
+
+            if len(sensors) == 0:
+                t.sleep(1)
+                continue
+
+            if len(times[index]) != 0  and times[index][-1] == get_time(sensors[0][0]):
+                t.sleep(1)
+                continue
+
+            lock.acquire()
+            if len(values[index]) >= 10:
+                values[index][:-1] = values[index][1:]
+                times[index][:-1] = times[index][1:]
+                values[index][-1] = sensors[0][2:]
+                times[index][-1] = get_time(sensors[0][0])
+            else:
+                values[index].append(sensors[0][2:])
+                times[index].append(get_time(sensors[0][0]))
+            lock.release()
+
+        t.sleep(1)
+
+    dbconn.close()
+
+
+#thread로 분리해서 실행할 함수는 아니지만, dash가 사용하는 thread에서만 사용하기에 이쪽에다 선언
+def get_time(current):
+    current = int(current)
+    temp = (current // 10000) * 3600
+    temp += (current % 10000) // 100 * 60
+    temp += (current % 100)
+    return temp
+

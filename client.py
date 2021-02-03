@@ -79,7 +79,7 @@ class Client(Device):
     def fix_option(self):
         print('[client] fix process')
         values = input('[client] input <온도 시간> : ').split()
-        temp, time, gas = values
+        temp, time = values
         send_pkt = packet_fix(int(temp), int(time))
         self.send_msg(send_pkt, self.sock)
 

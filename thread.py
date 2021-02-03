@@ -64,9 +64,15 @@ def server_furnace(sock:socket.socket, number:int, datas:Datas, q:list, dbconn, 
                     sock.sendall(b'fix signal')
                     temper, time = elem[2:]
                     send_pkt = packet_fix(temper, time)
+                    sock.recv(1024)
+                    print('[server] test line : 68')
+                    sock.sendall(send_pkt)
                     #데이터베이스에 공정정보를 수정한 값으로 갱신
                     sql = "UPDATE process SET temperature = %s, time = %s WHERE id = %s"
                     val = (temper, time, process_id)
+                    print('[server] test line : 73, 74')
+                    dbcur.execute(sql, val)
+                    dbconn.commit()
                     
                 no_signal = False
                 q.remove(elem)

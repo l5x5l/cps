@@ -9,3 +9,4 @@
             server_furnace에서 동일한 열처리로에 두 가지 이상 진행중인 공정이 발견될 경우(비정상 케이스) 예외 처리
             + 주의사항 mutex내에 실수로 socket통신에 관한 코드를 작성하지 말것, mutex로 인해 block되는 경우가 발생할 수 있다.
 
+0219_1708 : monitoring에 사용되는 thread에서 dbconn.commit()을 하지 않아 갱신된 db정보를 가져오지 못했던 문제를 수정

@@ -354,8 +354,8 @@ def monitoring(values, times, lock:threading.Lock):
     dbconn = pymysql.connect(host=parameter.host, user=parameter.user, password=parameter.password, database=parameter.db, charset=parameter.charset)
     dbcur = dbconn.cursor()
 
-    #sql = """select id from process where output is null"""
-    sql = """select id from process"""
+    sql = """select id from process where output is null"""
+    #sql = """select id from process"""
     dbcur.execute(sql)
     processes = dbcur.fetchall()
 
@@ -363,11 +363,16 @@ def monitoring(values, times, lock:threading.Lock):
         number = int(process[0][:2])
 
         if now_working_process[number - 1] == '-':
-            now_working_process[number - 1] = process
+            now_working_process[number - 1] = process[0]
         else:
             #만약 해당 열처리로에 2개 이상 작동중인 공정이 발견될 경우(비정상, 일반적인 경우에 발견되어서는 안됨), 이후 공정으로 설정
-            if int(process.split('_')[-1]) > int(now_working_process[number - 1].split('_')[-1]):
-                now_working_process[number - 1] = process 
+            if int(process[0].split('_')[-1]) >= int(now_working_process[number - 1].split('_')[-1]):
+                now_working_process[number - 1] = process[0]
+            else:
+                sql = "UPDATE process SET output = %s WHERE id = %s"
+                val = (int(2), process[0])
+                dbcur.execute(sql, val)
+                dbconn.commit()
 
         sql = """select * from furnace""" + str(number) +  """ where id = '""" + process[0] + """' order by current desc limit 10"""
         dbcur.execute(sql)
@@ -380,10 +385,14 @@ def monitoring(values, times, lock:threading.Lock):
         lock.release()
 
     while True:
-        #sql = """select id from process where output is null"""
-        sql = """select id from process"""
+        dbconn.commit()
+        sql = """select id from process where output is null"""
+        #sql = """select id from process"""
         dbcur.execute(sql)
         processes = dbcur.fetchall()
+
+        print('testline 393')
+        print(processes)
 
         for process in processes:
             dbconn.commit()
@@ -393,11 +402,14 @@ def monitoring(values, times, lock:threading.Lock):
             dbcur.execute(sql)
             sensors = list(dbcur.fetchall())
 
+            
             #기존 기록되었던 공정에서 다른 공정으로 변경된 경우 그래프 갱신을 위해 데이터 초기화
-            if now_working_process[index] != process:
-                now_working_process[index] = process
+            if now_working_process[index] != process[0]:
+                print('testline 399')
+                now_working_process[index] = process[0]
                 values[index] = []
                 times[index] = []
+            
 
             #진행중인 공정이나, 아직 센서값이 없는 경우(막 시작한 경우)
             if len(sensors) == 0:

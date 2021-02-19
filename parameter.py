@@ -1,4 +1,4 @@
-host='165.246.44.141' 
+host='165.246.44.133' 
 user='root'
 password='13130132'
 db = 'cps'

@@ -26,3 +26,13 @@ for i in range(total_furnace):
     dbcur.execute(sql, val)
 
 #touch, temp1, temp2, temp3, temp4, temp5, temp6, flow, press
+
+import pymysql
+import parameter
+import sys
+
+#본 코드를 실행하기 전 cps라는 이름을 가진 database를 생성해야 한다.
+#-> sql client에서 create database cps사용
+dbconn = pymysql.connect(host=parameter.host, user = parameter.user, passwd = parameter.password, db = parameter.db, charset = parameter.charset)
+dbcur = dbconn.cursor()
+total_furnace = parameter.total_furnace

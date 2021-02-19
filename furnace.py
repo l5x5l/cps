@@ -111,7 +111,7 @@ class Furnace(Device):
         self.process_time = time
 
 
-furnace = Furnace('165.246.44.141', 3050, sys.argv[1])
+furnace = Furnace('165.246.44.133', 3050, sys.argv[1])
 furnace.connect()
 furnace.preprocessing()
 while True:

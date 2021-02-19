@@ -57,7 +57,7 @@ class Server(Device):
             t = threading.Thread(target=thread.server_simple, args=(conn_sock, dbconn))
             t.start()
 
-serv = Server('165.246.44.141', 3050, parameter.total_furnace, 10)
+serv = Server('165.246.44.133', 3050, parameter.total_furnace, 10)
 while True:
     conn_sock, confirm_msg = serv.connect()
     serv.start_thread(conn_sock, confirm_msg)

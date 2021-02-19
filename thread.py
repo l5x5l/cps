@@ -48,6 +48,10 @@ def server_furnace(sock:socket.socket, number:int, datas:Datas, q:list, dbconn, 
 
     print(datas.datas[index]['state'])
 
+    print('testline thread 51')
+    print(q)
+
+
     #열처리로가 작업을 시작한 이후 실행되는 부분
     while True:
         no_signal = True
@@ -58,6 +62,7 @@ def server_furnace(sock:socket.socket, number:int, datas:Datas, q:list, dbconn, 
                 if elem[1] == 'end':
                     end_flag = True
                     sock.sendall(b'end signal')
+                    break
                 elif elem[1] == 'start':
                     sock.sendall(b'start signal')
                 elif elem[1] == 'fix':
@@ -78,6 +83,8 @@ def server_furnace(sock:socket.socket, number:int, datas:Datas, q:list, dbconn, 
                 q.remove(elem)
         lock.release()
 
+        print('testline 86')
+        print(no_signal)
         if no_signal:
             sock.sendall(b'no_signal')
 
@@ -133,7 +140,14 @@ def server_furnace(sock:socket.socket, number:int, datas:Datas, q:list, dbconn, 
 def server_client(sock:socket.socket, datas:Datas, q:list, dbconn, lock):
     dbcur = dbconn.cursor()
     while True:
+        #server_furnace에서 state를 갱신할 때까지 기다리기 위함
+        t.sleep(2)
+
+        lock.acquire()
         temp = datas.state_furnace()
+        lock.release()
+
+        #send나 recv가 lock 내부에 있으면 안된다.
         sock.sendall(temp.encode())
 
         num_opt = sock.recv(1024)
@@ -141,7 +155,9 @@ def server_client(sock:socket.socket, datas:Datas, q:list, dbconn, lock):
         #print(number + " " + option)
 
         #지정한 열처리로와 옵션이 가능한 옵션인지를 확인 (예] 켜져있지 않은 열처리로에 start옵션을 준 경우)
+        lock.acquire()
         check, answer = datas.check_furnace(int(number), option)
+        lock.release()
 
         sock.sendall(answer.encode())
         if not check:
@@ -334,7 +350,7 @@ def in_client_use():
 
 #dash앱에서 사용할 thread
 def monitoring(values, times, lock:threading.Lock):
-    
+    now_working_process = ['-', '-', '-', '-', '-', '-', '-', '-']
     dbconn = pymysql.connect(host=parameter.host, user=parameter.user, password=parameter.password, database=parameter.db, charset=parameter.charset)
     dbcur = dbconn.cursor()
 
@@ -345,6 +361,14 @@ def monitoring(values, times, lock:threading.Lock):
 
     for process in processes:
         number = int(process[0][:2])
+
+        if now_working_process[number - 1] == '-':
+            now_working_process[number - 1] = process
+        else:
+            #만약 해당 열처리로에 2개 이상 작동중인 공정이 발견될 경우(비정상, 일반적인 경우에 발견되어서는 안됨), 이후 공정으로 설정
+            if int(process.split('_')[-1]) > int(now_working_process[number - 1].split('_')[-1]):
+                now_working_process[number - 1] = process 
+
         sql = """select * from furnace""" + str(number) +  """ where id = '""" + process[0] + """' order by current desc limit 10"""
         dbcur.execute(sql)
         sensors = list(dbcur.fetchall())
@@ -369,10 +393,18 @@ def monitoring(values, times, lock:threading.Lock):
             dbcur.execute(sql)
             sensors = list(dbcur.fetchall())
 
+            #기존 기록되었던 공정에서 다른 공정으로 변경된 경우 그래프 갱신을 위해 데이터 초기화
+            if now_working_process[index] != process:
+                now_working_process[index] = process
+                values[index] = []
+                times[index] = []
+
+            #진행중인 공정이나, 아직 센서값이 없는 경우(막 시작한 경우)
             if len(sensors) == 0:
                 t.sleep(1)
                 continue
 
+            #진행중인 공정이나, 아직 센서값이 업데이트되지 않은 경우(마지막 시간과 동일한 경우)
             if len(times[index]) != 0  and times[index][-1] == get_time(sensors[0][0]):
                 t.sleep(1)
                 continue
@@ -388,7 +420,7 @@ def monitoring(values, times, lock:threading.Lock):
                 times[index].append(get_time(sensors[0][0]))
             lock.release()
 
-        t.sleep(1)
+        t.sleep(parameter.time_interval)
 
     dbconn.close()
 

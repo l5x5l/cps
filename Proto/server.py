@@ -50,7 +50,7 @@ class Server(Device):
             t.start()
         elif confirm[0] == 'client':
             dbconn = self.connect_db(parameter.user, parameter.password, parameter.db, parameter.charset)
-            t = threading.Thread(target=thread.server_client, args=(conn_sock, self.datas, self.q, dbconn, self.lock))
+            t = threading.Thread(target=thread.server_client2, args=(conn_sock, self.datas, self.q, dbconn, self.lock))
             t.start()
         elif confirm[0] == 'simple':
             dbconn = self.connect_db(parameter.user, parameter.password, parameter.db, parameter.charset)

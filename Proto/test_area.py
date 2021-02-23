@@ -1,10 +1,4 @@
-#(lambda checked, index=i:button.furnace_button_click(self.stk_w, index+1))
-#(lambda:button.furnace_button_click(self.stk_w, i+1))
-
-def get_index(i):
-    print('test')
-    print(i)
-
-some_list = []
-for i in range(8):
-    lambda checked, i=i:get_index(i)
+test_list = [[1,2,3], [4,5,6], [7, 8, 9]]
+temp = test_list[0]
+temp = None
+print(test_list)

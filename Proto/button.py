@@ -18,17 +18,18 @@ class Button(QPushButton):
         self.setStyleSheet("background-color: %s" % ({True: "green", False: "red"}[state]))
         self.setText({True: parameter.decision_str, False: parameter.modify_str}[state])
 
-#set base element about process and send them to server
-def set_base_button_click(material:str, process:str, amount:str):
-    print(material + ' / ' + process+ " / "+ amount)
 
-#set base element about process and send them to server
-def set_detail_button_click(gas:str, tempers = [], times = []):
-    print(gas)
-
-
-def back_button_click(stk_w):
+def back_button_click(stk_w, sock):
     stk_w.setCurrentIndex(0)
+    sock.sendall('esc'.encode())
 
-def furnace_button_click(stk_w, index:int):
-    stk_w.setCurrentIndex(index)
+    recv_msg = sock.recv(1024).decode()
+    print(recv_msg)
+
+def furnace_button_click(stk_w, sock, number:int):
+    stk_w.setCurrentIndex(number)
+    send_msg = 'num ' + str(number)
+    sock.sendall(send_msg.encode())
+
+    recv_msg = sock.recv(1024).decode()
+    print(recv_msg)

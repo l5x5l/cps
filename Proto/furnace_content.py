@@ -1,5 +1,6 @@
 import parameter
 import button
+import client
 import sys
 from PyQt5 import QtCore
 from PyQt5.QtWidgets import *
@@ -38,12 +39,14 @@ class SensorPlot(QWidget):
         self.canvas = PlotCanvas(self, width=10, height=8, dpi=100)
         vbox.addWidget(self.canvas)
         hbox = QHBoxLayout()
+        '''
         self.start_button = QPushButton("start", self)
         self.stop_button = QPushButton("stop", self)
         self.start_button.clicked.connect(self.on_start)
         self.stop_button.clicked.connect(self.on_stop)
         hbox.addWidget(self.start_button)
         hbox.addWidget(self.stop_button)
+        '''
         vbox.addLayout(hbox)
         self.setLayout(vbox)
 
@@ -58,7 +61,6 @@ class SensorPlot(QWidget):
         self.ani = animation.FuncAnimation(self.canvas.figure, self.update_line,blit=True, interval=1000)
         self.ani2 = animation.FuncAnimation(self.canvas.figure, self.update_line2,blit=True, interval=1000)
     
-
 
     def update_line(self, i):
         y = random.randint(0,1024)
@@ -86,10 +88,10 @@ class SensorPlot(QWidget):
         self.ani2._stop()
 
 class FurnaceContent(QWidget):
-    def __init__(self, furnace_number:int, client):
+    def __init__(self, furnace_number:int, sock):
         super().__init__()
         self.number = furnace_number
-        self.client = client
+        self.sock = sock
         self.initUI()
 
     def initUI(self):
@@ -107,6 +109,7 @@ class FurnaceContent(QWidget):
         #right_area : select base element and detail element
         self.right_area = QVBoxLayout()
         
+        #base element setting
         base_area = QVBoxLayout()
         material_opt = QComboBox(self)
         material_opt.addItem('material1')
@@ -124,22 +127,28 @@ class FurnaceContent(QWidget):
         amount_opt.addItem('700')
 
         set_base_button = button.Button(parameter.decision_str)
-        set_base_button.clicked.connect(lambda:button.set_base_button_click(str(material_opt.currentText()), str(process_opt.currentText()), str(amount_opt.currentText())))
+        set_base_button.clicked.connect(lambda:self.set_base_button_click(str(material_opt.currentText()), str(process_opt.currentText()), str(amount_opt.currentText())))
 
         base_area.addWidget(material_opt)
         base_area.addWidget(process_opt)
         base_area.addWidget(amount_opt)
         base_area.addWidget(set_base_button)
 
+        #detail element setting
         detail_area = QVBoxLayout()
+
+        set_temper_time_button = QPushButton('시간/온도 상세설정')
+        set_temper_time_button.clicked.connect(self.set_detail_temp_time_click)
+
         gas_opt = QComboBox(self)
         gas_opt.addItem('gas1')
         gas_opt.addItem('gas2')
         gas_opt.addItem('gas3')
-        
+
         set_detail_button = button.Button(parameter.decision_str)
-        set_detail_button.clicked.connect(lambda:button.set_detail_button_click(str(gas_opt.currentText())))
+        set_detail_button.clicked.connect(lambda:self.set_detail_button_click(str(gas_opt.currentText())))
         
+        detail_area.addWidget(set_temper_time_button)
         detail_area.addWidget(gas_opt)
         detail_area.addWidget(set_detail_button)
 
@@ -152,8 +161,73 @@ class FurnaceContent(QWidget):
         self.layout.addLayout(self.right_area, 1)
 
         self.setLayout(self.layout)
-        #self.setWindowTitle('furnace' + str(self.number))
-        #self.setGeometry(0, 0, parameter.width, parameter.height)
+
+
+    #set base element about process and send them to server
+    def set_base_button_click(self, material:str, process:str, amount:str):
+        msg = ('base ' + material + ' / ' + process+ " / "+ amount)
+        msg_byte = msg.encode()
+        self.sock.sendall(msg_byte)
+
+        recv_msg = self.sock.recv(1024).decode()
+        print(recv_msg)
+
+
+    #set base element about process and send them to server
+    def set_detail_button_click(self, gas:str, tempers = [], times = []):
+        msg_byte = ('detail ' + gas).encode()
+        self.sock.sendall(msg_byte)
+
+        recv_msg = self.sock.recv(1024).decode()
+        print(recv_msg)
+
+    def set_detail_temp_time_click(self):
+        win = SubWindow()
+        r = win.showModel()
+
+        if r:
+            value = win.test_opt.currentText()
+            print(value)
+
+#테스트용 subwindow, 이걸 온도/시간 상세설정 페이지로 전환하여야 함
+class SubWindow(QDialog):
+    def __init__(self):
+        super().__init__()
+        self.initUI()
+    
+    def initUI(self):
+        self.setStyleSheet('background-color:white')
+        self.setWindowTitle('Sub Window')
+        self.setGeometry(100, 100, 800, 400)
+
+        layout = QVBoxLayout()
+
+
+        self.test_opt = QComboBox(self)
+        self.test_opt.addItem('1a')
+        self.test_opt.addItem('2b')
+        self.test_opt.addItem('3c')
+
+        btnOK = QPushButton("확인")
+        btnOK.clicked.connect(self.OKbutton_click)
+        btnCancel = QPushButton("취소")
+        btnCancel.clicked.connect(self.Cancelbutton_click)
+
+        layout.addWidget(self.test_opt)
+        layout.addWidget(btnOK)
+        layout.addWidget(btnCancel)
+
+        self.setLayout(layout)
+
+
+    def OKbutton_click(self):
+        self.accept()
+
+    def Cancelbutton_click(self):
+        self.reject()
+
+    def showModel(self):
+        return super().exec_()
 
 
 if __name__ == "__main__":

@@ -41,21 +41,6 @@ class Server(Device):
         return conn_sock, confirm_msg
 
 
-    def start_thread(self, conn_sock, confirm_msg):
-        confirm = confirm_msg
-        if confirm[0] == 'furnace':
-            self.datas.on_furnace_data(int(confirm[1]))
-            dbconn = self.connect_db(parameter.user, parameter.password, parameter.db, parameter.charset)
-            t = threading.Thread(target=thread.server_furnace, args=(conn_sock, int(confirm[1]), self.datas, self.q, dbconn, self.lock))
-            t.start()
-        elif confirm[0] == 'client':
-            dbconn = self.connect_db(parameter.user, parameter.password, parameter.db, parameter.charset)
-            t = threading.Thread(target=thread.server_client, args=(conn_sock, self.datas, self.q, dbconn, self.lock))
-            t.start()
-        elif confirm[0] == 'simple':
-            dbconn = self.connect_db(parameter.user, parameter.password, parameter.db, parameter.charset)
-            t = threading.Thread(target=thread.server_simple, args=(conn_sock, dbconn))
-            t.start()
 
 serv = Server('165.246.44.133', 3050, parameter.total_furnace, 10)
 conn_sock, confirm_msg = serv.connect()

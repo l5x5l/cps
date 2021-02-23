@@ -216,6 +216,70 @@ def server_client(sock:socket.socket, datas:Datas, q:list, dbconn, lock):
             lock.release()
     sock.close()
 
+
+##시작할 때 데이터베이스 읽어와서 실행중인 열처리로에 대해서는 order_list를 채워넣어야 한다.
+def server_client2(sock:socket.socket, datas:Datas, q:list, dbconn, lock):
+    dbcur = dbconn.cursor()
+    order_list = []
+    for i in range(parameter.total_furnace):
+        order_list.append([])
+    temp = None
+    number = None
+
+    while True:
+        print(temp)
+        lock.acquire()
+        data = datas.state_furnace()
+        lock.release()
+
+        recv_msg = sock.recv(1024).decode()
+        recv_msg_list = recv_msg.split()
+        if recv_msg_list[0] == 'esc':
+            temp = None
+            number = None
+            sock.sendall(parameter.success_str.encode())
+        elif recv_msg_list[0] == 'num':
+            #[message example] num 1 -> select furnace1
+            if temp is None:
+                number = int(recv_msg_list[1])
+                temp = order_list[number - 1]
+                sock.sendall(parameter.success_str.encode())
+            else:
+                sock.sendall((parameter.error_str + '_num').encode())
+        elif recv_msg_list[0] == 'base':
+            if temp is not None and len(temp) == 0:
+                base_element = ' '.join(recv_msg_list[1:])
+                temp.append(base_element)
+                sock.sendall(parameter.success_str.encode())
+            else:
+                sock.sendall((parameter.error_str + '_base').encode())
+        elif recv_msg_list[0] == 'base_fix':
+            if temp is not None and len(temp) == 1:
+                prev_base = temp[-1]
+                temp = temp[:-1]
+                sock.sendall(parameter.success_str.encode())
+            else:
+                sock.sendall((parameter.error_str + '_base_fix').encode())
+        elif recv_msg_list[0] == 'detail':
+            if temp is not None and len(temp) == 1:
+                detail_element = ' '.join(recv_msg_list[1:])
+                temp.append(detail_element)
+                sock.sendall(parameter.success_str.encode())
+            else:
+                sock.sendall((parameter.error_str + '_detail').encode())
+        elif recv_msg_list[0] == 'detail_fix':
+            if temp is not None and len(temp) == 2:
+                prev_detail = temp[-1]
+                temp = temp[:-1]
+                sock.sendall(parameter.success_str.encode())
+            else:
+                sock.sendall((parameter.error_str + '_detail_fix').encode())
+        elif recv_msg_list[0] == 'stop':
+            temp.clear()
+            sock.sendall(parameter.success_str.encode())
+        else:
+            sock.sendall((parameter.error_str + '_wrong msg type' + recv_msg_list[0]).encode())
+
 def server_simple(sock:socket.socket(), dbconn):
     #아직 while문 없다
     dbcur = dbconn.cursor()

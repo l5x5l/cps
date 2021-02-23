@@ -14,3 +14,6 @@ width = 1000
 
 decision_str = "결정"
 modify_str = "수정"
+
+success_str = 'success'
+error_str = 'error'

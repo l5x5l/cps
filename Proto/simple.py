@@ -24,7 +24,7 @@ class Simple(device.Device):
 
 
     def simple_first_recv(self):    
-        #recv size가 1024가 아닌 2048이라 내부 함수를 사용하지 않았음
+
         for i in range(parameter.total_furnace):
             sensors = self.sock.recv(2048)
             sensors = sensors.decode()

@@ -2,6 +2,7 @@ import parameter
 import button
 import client
 import sys
+import pymysql
 from PyQt5 import QtCore
 from PyQt5.QtWidgets import *
 import numpy as np
@@ -13,21 +14,20 @@ import random
 
 class PlotCanvas(FigureCanvas):
     def __init__(self, parent = None, width = 5, height = 4, dpi = 100):
-        fig = Figure()
+        self.fig = Figure()
 
-        self.temp1 = fig.add_subplot(421, xlim=(0, 50), ylim=(0, 1024))
-        self.temp2 = fig.add_subplot(422, xlim=(0, 50), ylim=(0, 1024))
-        self.temp3 = fig.add_subplot(423, xlim=(0, 50), ylim=(0, 1024))
-        self.temp4 = fig.add_subplot(424, xlim=(0, 50), ylim=(0, 1024))
-        self.temp5 = fig.add_subplot(425, xlim=(0, 50), ylim=(0, 1024))
-        self.temp6 = fig.add_subplot(426, xlim=(0, 50), ylim=(0, 1024))
-        self.flow = fig.add_subplot(427, xlim=(0, 50), ylim=(0, 1024))
-        self.press = fig.add_subplot(428,xlim=(0, 50), ylim=(0, 1024))
+        self.temp1 = self.fig.add_subplot(421, xlim=(0, 50), ylim=(0, 1024))
+        self.temp2 = self.fig.add_subplot(422, xlim=(0, 50), ylim=(0, 1024))
+        self.temp3 = self.fig.add_subplot(423, xlim=(0, 50), ylim=(0, 1024))
+        self.temp4 = self.fig.add_subplot(424, xlim=(0, 50), ylim=(0, 1024))
+        self.temp5 = self.fig.add_subplot(425, xlim=(0, 50), ylim=(0, 1024))
+        self.temp6 = self.fig.add_subplot(426, xlim=(0, 50), ylim=(0, 1024))
+        self.flow = self.fig.add_subplot(427, xlim=(0, 50), ylim=(0, 1024))
+        self.press = self.fig.add_subplot(428,xlim=(0, 50), ylim=(0, 1024))
 
         self.compute_initial_figure()
-        FigureCanvas.__init__(self, fig)
+        FigureCanvas.__init__(self, self.fig)
         self.setParent(parent)
-    
 
     def compute_initial_figure(self):
         pass
@@ -35,20 +35,27 @@ class PlotCanvas(FigureCanvas):
 class SensorPlot(QWidget):
     def __init__(self):
         QMainWindow.__init__(self)
-        vbox = QVBoxLayout()
+
+        self.base_box = QHBoxLayout()
+
+        self.left_area = QVBoxLayout()
         self.canvas = PlotCanvas(self, width=10, height=8, dpi=100)
-        vbox.addWidget(self.canvas)
-        hbox = QHBoxLayout()
-        '''
-        self.start_button = QPushButton("start", self)
-        self.stop_button = QPushButton("stop", self)
-        self.start_button.clicked.connect(self.on_start)
-        self.stop_button.clicked.connect(self.on_stop)
-        hbox.addWidget(self.start_button)
-        hbox.addWidget(self.stop_button)
-        '''
-        vbox.addLayout(hbox)
-        self.setLayout(vbox)
+        self.left_area.addWidget(self.canvas)
+
+        #middle area에도 센서값을 표시하는 구역이 존재하므로 통합
+        self.middle_area = QVBoxLayout()
+        furnace_img = QWidget()
+
+        furnace_number = QLabel('testing')
+
+        self.middle_area.addWidget(furnace_number)
+        self.middle_area.addWidget(furnace_img)
+
+
+        self.base_box.addLayout(self.left_area, 2)
+        self.base_box.addLayout(self.middle_area, 1)
+
+        self.setLayout(self.base_box)
 
         self.list = [self.canvas.temp1, self.canvas.temp2, self.canvas.temp3, self.canvas.temp4, self.canvas.temp5, self.canvas.temp6,self.canvas.flow, self.canvas.press]
         self.line = ["", "", "", "", "", "", "", ""]
@@ -56,60 +63,101 @@ class SensorPlot(QWidget):
         for i in range(len(self.list)):              
             self.x = np.arange(50)
             self.y = np.ones(50, dtype=np.float)*np.nan
-            self.line[i], = self.list[i].plot(self.x, self.y, animated=True)
-
-        self.ani = animation.FuncAnimation(self.canvas.figure, self.update_line,blit=True, interval=1000)
-        self.ani2 = animation.FuncAnimation(self.canvas.figure, self.update_line2,blit=True, interval=1000)
+            self.line[i], = self.list[i].plot(self.x, self.y, animated=False)
     
+    def init_data(self, datas):
+        """
+        update total graph of one furnace
 
-    def update_line(self, i):
-        y = random.randint(0,1024)
-        old_y = self.line[4].get_ydata()
-        new_y = np.r_[old_y[1:], y]
-        self.line[4].set_ydata(new_y)
+        datas : sensor datas -> [[temp1~6, flow, press, touch], [temp1~6, flow, press, touch], [temp1~6, flow, press, touch],...]
+        type of datas elemnt : list([int, int, ..., str])
+        """
+        sensor_list = []
+        temp1, temp2, temp3, temp4, temp5, temp6, flow, press = [], [], [], [], [], [], [], []
+        for value in datas:
+            temp1.append(int(value[0]))
+            temp2.append(int(value[1]))
+            temp3.append(int(value[2]))
+            temp4.append(int(value[3]))
+            temp5.append(int(value[4]))
+            temp6.append(int(value[5]))
+            flow.append(int(value[6]))
+            press.append(int(value[7]))
+
+        init_sensor_size = len(temp1)
+
+        sensor_list.append(temp1)
+        sensor_list.append(temp2)
+        sensor_list.append(temp3)
+        sensor_list.append(temp4)
+        sensor_list.append(temp5)
+        sensor_list.append(temp6)
+        sensor_list.append(flow)
+        sensor_list.append(press)
+
+        for index, _ in enumerate(self.line):
+            y = sensor_list[index]
+            old_y = self.line[index].get_ydata()
+            new_y = np.r_[old_y[init_sensor_size:], y]
+            self.line[index].set_ydata(new_y)
         
-        # self.line.set_ydata(y)
-        return [self.line[4]]
+        self.canvas.draw()
+        self.canvas.flush_events()
 
-    def update_line2(self, i):
-        y2 = random.randint(0,510)
-        old_y2 = self.line[3].get_ydata()
-        new_y2 = np.r_[old_y2[1:], y2]
-        self.line[3].set_ydata(new_y2)
-        return [self.line[3]]
-        # self.line.set_ydata(y)
 
-    def on_start(self):
-        self.ani = animation.FuncAnimation(self.canvas.figure, self.update_line,blit=True, interval=1000)
-        self.ani2 = animation.FuncAnimation(self.canvas.figure, self.update_line2,blit=True, interval=1000)
+    def update(self, datas):
+        """
+        update total graph of one furnace
 
-    def on_stop(self):
-        self.ani._stop()
-        self.ani2._stop()
+        datas : sensor data -> [temp1~6, flow, press, touch]
+        type of datas elemnt without touch : int
+        """
+        #print(self.line[0].get_ydata())
+        #print(datas)
+        for index, _ in enumerate(self.line):
+            #가장 앞에 있는게 touch 인듯
+            y = int(datas[index + 3])
+            #y = random.randint(0,1024)
+            old_y = self.line[index].get_ydata()
+            new_y = np.r_[old_y[1:], y]
+            self.line[index].set_ydata(new_y)
+
+        self.canvas.draw()
+        self.canvas.flush_events()
+
 
 class FurnaceContent(QWidget):
-    def __init__(self, furnace_number:int, sock):
+    def __init__(self, furnace_number:int, sock, dbconn):
         super().__init__()
+        self.setting_popup = SubWindow()
         self.number = furnace_number
         self.sock = sock
+        self.dbconn = dbconn
         self.initUI()
 
     def initUI(self):
         self.layout = QHBoxLayout()
+
+        detail_disable = []
+        detail_able = []
+        base_disable = []
+        base_able = []
+
         #left area : sensor data (temp1~6, flow, press)
         self.sensor_area = SensorPlot()
-
+        '''
         #middle area : furnace image and sensor data
         self.middle_area = QVBoxLayout()
         furnace_img = QWidget()
         furnace_number = QLabel(str(self.number))
         self.middle_area.addWidget(furnace_number)
         self.middle_area.addWidget(furnace_img)
-
+        '''
         #right_area : select base element and detail element
         self.right_area = QVBoxLayout()
         
         #base element setting
+        #버튼은 마지막에 layout에 추가하기 직전에 추가된다.  
         base_area = QVBoxLayout()
         material_opt = QComboBox(self)
         material_opt.addItem('material1')
@@ -126,8 +174,7 @@ class FurnaceContent(QWidget):
         amount_opt.addItem('500')
         amount_opt.addItem('700')
 
-        set_base_button = button.Button(parameter.decision_str)
-        set_base_button.clicked.connect(lambda:self.set_base_button_click(str(material_opt.currentText()), str(process_opt.currentText()), str(amount_opt.currentText())))
+        set_base_button = button.Base_Button(parameter.decision_str)
 
         base_area.addWidget(material_opt)
         base_area.addWidget(process_opt)
@@ -145,19 +192,32 @@ class FurnaceContent(QWidget):
         gas_opt.addItem('gas2')
         gas_opt.addItem('gas3')
 
-        set_detail_button = button.Button(parameter.decision_str)
-        set_detail_button.clicked.connect(lambda:self.set_detail_button_click(str(gas_opt.currentText())))
-        
+        set_detail_button = button.Detail_Button(parameter.decision_str)
+
         detail_area.addWidget(set_temper_time_button)
         detail_area.addWidget(gas_opt)
-        detail_area.addWidget(set_detail_button)
+        detail_area.addWidget(set_detail_button)       
+
+        '''
+        base_able.append(material_opt)
+        base_able.append(process_opt)
+        base_able.append(amount_opt)
+        base_disable.append(set_temper_time_button)
+        base_disable.append(gas_opt)
+        base_disable.append(set_detail_button)
+
+        detail_able.append(set_base_button)
+        detail_able.append(gas_opt)
+        detail_able.append(set_temper_time_button)
+        '''
+        base_area.itemAt(3).widget().clicked.connect(lambda:set_base_button.button_click(str(material_opt.currentText()), str(process_opt.currentText()), str(amount_opt.currentText()), self.sock, base_disable, base_able))
+        detail_area.itemAt(2).widget().clicked.connect(lambda:set_detail_button.button_click(str(gas_opt.currentText()), [], [], self.sock, detail_disable, detail_able))
 
         self.right_area.addLayout(base_area,2)
         self.right_area.addLayout(detail_area,2)
 
         #concat
-        self.layout.addWidget(self.sensor_area,2)
-        self.layout.addLayout(self.middle_area, 1)
+        self.layout.addWidget(self.sensor_area,3)
         self.layout.addLayout(self.right_area, 1)
 
         self.setLayout(self.layout)
@@ -169,8 +229,9 @@ class FurnaceContent(QWidget):
         msg_byte = msg.encode()
         self.sock.sendall(msg_byte)
 
+        #success msg
         recv_msg = self.sock.recv(1024).decode()
-        print(recv_msg)
+
 
 
     #set base element about process and send them to server
@@ -178,46 +239,107 @@ class FurnaceContent(QWidget):
         msg_byte = ('detail ' + gas).encode()
         self.sock.sendall(msg_byte)
 
+        #success msg
         recv_msg = self.sock.recv(1024).decode()
-        print(recv_msg)
+
 
     def set_detail_temp_time_click(self):
-        win = SubWindow()
+        win = self.setting_popup
         r = win.showModel()
 
         if r:
-            value = win.test_opt.currentText()
+            time = win.setting_area.itemAt(0).itemAt(0).widget().text()
+            temp = win.setting_area.itemAt(0).itemAt(1).widget().text()
+            value = str(time) + "/" + str(temp)
             print(value)
 
 #테스트용 subwindow, 이걸 온도/시간 상세설정 페이지로 전환하여야 함
 class SubWindow(QDialog):
     def __init__(self):
         super().__init__()
+        self.temp_times = []
         self.initUI()
+
     
     def initUI(self):
+        self.setting_list = []
         self.setStyleSheet('background-color:white')
         self.setWindowTitle('Sub Window')
         self.setGeometry(100, 100, 800, 400)
 
-        layout = QVBoxLayout()
+        self.layout = QHBoxLayout()
 
+        self.graph_area = QWidget()
 
-        self.test_opt = QComboBox(self)
+        self.setting_button = QVBoxLayout()
+        self.setting_area = QVBoxLayout()
+        self.button_area = QVBoxLayout()
+        '''
+        self.test_opt = setting_row()
         self.test_opt.addItem('1a')
         self.test_opt.addItem('2b')
         self.test_opt.addItem('3c')
+        '''
 
         btnOK = QPushButton("확인")
         btnOK.clicked.connect(self.OKbutton_click)
         btnCancel = QPushButton("취소")
         btnCancel.clicked.connect(self.Cancelbutton_click)
+        btnAdd = QPushButton("추가")
+        btnAdd.clicked.connect(self.Addbutton_click)
 
-        layout.addWidget(self.test_opt)
-        layout.addWidget(btnOK)
-        layout.addWidget(btnCancel)
+        self.setting_area.addLayout(self.setting_row())
+        self.button_area.addWidget(btnAdd)
+        self.button_area.addWidget(btnOK)
+        self.button_area.addWidget(btnCancel)
 
-        self.setLayout(layout)
+        self.setting_button.addLayout(self.setting_area, 5)
+        self.setting_button.addLayout(self.button_area, 3)
+
+        self.layout.addWidget(self.graph_area)
+        self.layout.addLayout(self.setting_button)
+
+        self.setLayout(self.layout)
+
+    def setting_row(self):
+        row = QHBoxLayout()  
+        number = self.setting_area.count()
+        time_input = QLineEdit(self)
+        temp_input = QLineEdit(self)
+        btnDel = QPushButton('삭제')
+        row.addWidget(time_input, 4)
+        row.addWidget(temp_input, 4)
+        row.addWidget(btnDel, 1)
+        row.itemAt(2).widget().clicked.connect(lambda:self.Delbutton_click(row))
+
+        return row
+
+    def test_del(self):
+        pass
+
+
+    def all_delete(self):
+        for i in reversed(range(self.setting_area.count())):
+            self.setting_area.itemAt(i).widget()
+
+
+    def Addbutton_click(self):
+        if self.setting_area.count() < 10:
+            self.setting_area.addLayout(self.setting_row())
+
+    ##주의사항 : layout을 제거할 때는 layout내의 widget을 먼저 모두 제거해야 한다.
+    def Delbutton_click(self, widget):
+        count = self.setting_area.count()
+        print(count)
+        if count >= 2:
+            for i in reversed(range(widget.count())):
+                widget.itemAt(i).widget().setParent(None)
+            self.setting_area.removeItem(widget)
+            '''
+            print(self.setting_area.itemAt(0).itemAt(number))
+            print(self.layout.itemAt(1).itemAt(0).itemAt(number))
+            print(self.layout.count())
+            '''
 
 
     def OKbutton_click(self):
@@ -228,6 +350,7 @@ class SubWindow(QDialog):
 
     def showModel(self):
         return super().exec_()
+        
 
 
 if __name__ == "__main__":

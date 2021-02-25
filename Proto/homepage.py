@@ -3,6 +3,9 @@ import furnace_content
 import sys
 import client
 import button
+import pymysql
+import threading
+import time
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 
@@ -38,10 +41,12 @@ class Select(QWidget):
         self.setLayout(self.layout)
 
 class HomePage(QWidget):
-    def __init__(self, sock):
+    def __init__(self, sock, dbconn):
         super().__init__()
         self.sock = sock
+        self.dbconn = dbconn
         self.initUI()
+
 
     def initUI(self):
         self.setStyleSheet('background-color:white')
@@ -65,9 +70,12 @@ class HomePage(QWidget):
         self.dyn_content.addWidget(self.content_area)
         self.furnace_list = []
         for i in range(parameter.total_furnace):
-            self.furnace_list.append(furnace_content.FurnaceContent(i+1, self.sock))
+            self.furnace_list.append(furnace_content.FurnaceContent(i+1, self.sock, self.dbconn))
             self.dyn_content.addWidget(self.furnace_list[i])
-
+        
+        t = threading.Thread(target=monitoring, args=(self.dbconn, self.furnace_list))
+        t.daemon = True
+        t.start()
 
         #settting area | image area | furnace area
         self.layout.addLayout(self.setting_area, 1)
@@ -84,6 +92,53 @@ def back_button_click(stk_w):
 def furnace_button_click(stk_w, index:int):
     stk_w.setCurrentIndex(index)
 
+
+#for test
+def monitoring(dbconn:pymysql.Connection, furnace_pages):
+    dbconn.commit()
+    dbcur = dbconn.cursor()
+    now_working_process = ['-', '-', '-', '-', '-', '-', '-', '-']
+
+    sql = """select id from process where output is null"""
+    dbcur.execute(sql)
+    processes = dbcur.fetchall()
+
+    for process in processes:
+        number = int(process[0][:2])
+
+        if now_working_process[number - 1] == '-':
+            now_working_process[number - 1] = process[0]
+        
+        sql = """select * from furnace""" + str(number) +  """ where id = '""" + process[0] + """' order by current desc limit 50"""
+        dbcur.execute(sql)
+        sensors = list(dbcur.fetchall())
+        for sensor in sensors:
+            sensor = list(sensor)
+        furnace_pages[number - 1].sensor_area.init_data(sensors)
+
+    while True:
+        dbconn.commit()
+        #sql = """select id from process where output is null"""
+        sql = """select id from process"""
+        dbcur.execute(sql)
+        processes = dbcur.fetchall()
+        #print(processes)
+
+        for process in processes:
+            number = int(process[0][:2])
+            if now_working_process[number - 1] == '-':
+                now_working_process[number - 1] = process[0] 
+
+            if now_working_process[number - 1] not in processes:
+                now_working_process[number - 1] = '-'
+                #초기화 함수 필요할듯   
+
+            sql = """select * from furnace""" + str(number) +  """ where id = '""" + process[0] + """' order by current desc limit 1"""
+            dbcur.execute(sql)
+            sensors = list(dbcur.fetchall())
+            sensors = list(sensors[0])
+            furnace_pages[number - 1].sensor_area.update(sensors)
+        time.sleep(parameter.time_interval)
 
 if __name__ == "__main__":
     #C = client.Client(parameter.host, parameter.port)

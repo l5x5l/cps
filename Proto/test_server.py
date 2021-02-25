@@ -5,6 +5,7 @@ import pymysql
 import thread
 import data
 import parameter
+import pickle
 from device import Device
 
 class Server(Device):
@@ -44,6 +45,17 @@ class Server(Device):
 
 serv = Server('165.246.44.133', 3050, parameter.total_furnace, 10)
 conn_sock, confirm_msg = serv.connect()
-while True:
-    msg = conn_sock.recv(1024)
-    print(msg.decode())
+conn_sock.sendall('confirm'.encode())
+
+num = conn_sock.recv(1024).decode()
+print(num)
+conn_sock.sendall('confirm'.encode())
+
+msg = conn_sock.recv(int(num))
+msg = msg.decode()
+
+sensors = []
+for time_step in msg.split('|'):
+    sensors.append(time_step.split('/'))
+
+print(sensors)

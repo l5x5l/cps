@@ -32,6 +32,8 @@ class PlotCanvas(FigureCanvas):
     def compute_initial_figure(self):
         pass
 
+
+
 class SensorPlot(QWidget):
     def __init__(self):
         QMainWindow.__init__(self)
@@ -75,14 +77,14 @@ class SensorPlot(QWidget):
         sensor_list = []
         temp1, temp2, temp3, temp4, temp5, temp6, flow, press = [], [], [], [], [], [], [], []
         for value in datas:
-            temp1.append(int(value[0]))
-            temp2.append(int(value[1]))
-            temp3.append(int(value[2]))
-            temp4.append(int(value[3]))
-            temp5.append(int(value[4]))
-            temp6.append(int(value[5]))
-            flow.append(int(value[6]))
-            press.append(int(value[7]))
+            temp1.append(int(value[3]))
+            temp2.append(int(value[4]))
+            temp3.append(int(value[5]))
+            temp4.append(int(value[6]))
+            temp5.append(int(value[7]))
+            temp6.append(int(value[8]))
+            flow.append(int(value[9]))
+            press.append(int(value[10]))
 
         init_sensor_size = len(temp1)
 
@@ -133,6 +135,10 @@ class FurnaceContent(QWidget):
         self.number = furnace_number
         self.sock = sock
         self.dbconn = dbconn
+        
+        self.heattime_list = []
+        self.staytime_list = []
+        self.temp_list = []
         self.initUI()
 
     def initUI(self):
@@ -211,7 +217,7 @@ class FurnaceContent(QWidget):
         detail_able.append(set_temper_time_button)
         '''
         base_area.itemAt(3).widget().clicked.connect(lambda:set_base_button.button_click(str(material_opt.currentText()), str(process_opt.currentText()), str(amount_opt.currentText()), self.sock, base_disable, base_able))
-        detail_area.itemAt(2).widget().clicked.connect(lambda:set_detail_button.button_click(str(gas_opt.currentText()), [], [], self.sock, detail_disable, detail_able))
+        detail_area.itemAt(2).widget().clicked.connect(lambda:set_detail_button.button_click(str(gas_opt.currentText()), self.temp_list, self.heattime_list, self.staytime_list,self.sock, detail_disable, detail_able))
 
         self.right_area.addLayout(base_area,2)
         self.right_area.addLayout(detail_area,2)
@@ -223,35 +229,23 @@ class FurnaceContent(QWidget):
         self.setLayout(self.layout)
 
 
-    #set base element about process and send them to server
-    def set_base_button_click(self, material:str, process:str, amount:str):
-        msg = ('base ' + material + ' / ' + process+ " / "+ amount)
-        msg_byte = msg.encode()
-        self.sock.sendall(msg_byte)
-
-        #success msg
-        recv_msg = self.sock.recv(1024).decode()
-
-
-
-    #set base element about process and send them to server
-    def set_detail_button_click(self, gas:str, tempers = [], times = []):
-        msg_byte = ('detail ' + gas).encode()
-        self.sock.sendall(msg_byte)
-
-        #success msg
-        recv_msg = self.sock.recv(1024).decode()
-
-
     def set_detail_temp_time_click(self):
         win = self.setting_popup
         r = win.showModel()
 
         if r:
-            time = win.setting_area.itemAt(0).itemAt(0).widget().text()
-            temp = win.setting_area.itemAt(0).itemAt(1).widget().text()
-            value = str(time) + "/" + str(temp)
-            print(value)
+            count = win.setting_area.count()
+            heattime_list, staytime_list, temp_list = [], [], []
+            for i in range(count):
+                temp_list.append(win.setting_area.itemAt(i).itemAt(0).widget().text())
+                heattime_list.append(win.setting_area.itemAt(i).itemAt(1).widget().text())
+                staytime_list.append(win.setting_area.itemAt(i).itemAt(2).widget().text())
+
+            self.heattime_list = heattime_list
+            self.staytime_list = staytime_list
+            self.temp_list = temp_list
+            
+
 
 #테스트용 subwindow, 이걸 온도/시간 상세설정 페이지로 전환하여야 함
 class SubWindow(QDialog):
@@ -267,11 +261,17 @@ class SubWindow(QDialog):
         self.setWindowTitle('Sub Window')
         self.setGeometry(100, 100, 800, 400)
 
+        #total popup page layout
         self.layout = QHBoxLayout()
 
+        #time and temper graph area
         self.graph_area = QWidget()
 
-        self.setting_button = QVBoxLayout()
+        #area where input time, temper and button placed
+        self.right_area = QVBoxLayout()
+        #consist of ok button and cancel button
+        self.OK_CAN = QHBoxLayout()
+        #area where input time and temper
         self.setting_area = QVBoxLayout()
         self.button_area = QVBoxLayout()
         '''
@@ -289,38 +289,34 @@ class SubWindow(QDialog):
         btnAdd.clicked.connect(self.Addbutton_click)
 
         self.setting_area.addLayout(self.setting_row())
+        self.OK_CAN.addWidget(btnOK, 1)
+        self.OK_CAN.addWidget(btnCancel, 1)
         self.button_area.addWidget(btnAdd)
-        self.button_area.addWidget(btnOK)
-        self.button_area.addWidget(btnCancel)
+        self.button_area.addLayout(self.OK_CAN)
 
-        self.setting_button.addLayout(self.setting_area, 5)
-        self.setting_button.addLayout(self.button_area, 3)
+        self.right_area.addLayout(self.setting_area, 5)
+        self.right_area.addLayout(self.button_area, 3)
 
-        self.layout.addWidget(self.graph_area)
-        self.layout.addLayout(self.setting_button)
+        self.layout.addWidget(self.graph_area, 7)
+        self.layout.addLayout(self.right_area, 3)
 
         self.setLayout(self.layout)
 
     def setting_row(self):
         row = QHBoxLayout()  
         number = self.setting_area.count()
-        time_input = QLineEdit(self)
+        heattime_input = QLineEdit(self)
+        staytime_input = QLineEdit(self)
         temp_input = QLineEdit(self)
+
         btnDel = QPushButton('삭제')
-        row.addWidget(time_input, 4)
-        row.addWidget(temp_input, 4)
+        row.addWidget(temp_input, 3)
+        row.addWidget(heattime_input, 3)
+        row.addWidget(staytime_input, 3)
         row.addWidget(btnDel, 1)
-        row.itemAt(2).widget().clicked.connect(lambda:self.Delbutton_click(row))
+        row.itemAt(3).widget().clicked.connect(lambda:self.Delbutton_click(row))
 
         return row
-
-    def test_del(self):
-        pass
-
-
-    def all_delete(self):
-        for i in reversed(range(self.setting_area.count())):
-            self.setting_area.itemAt(i).widget()
 
 
     def Addbutton_click(self):
@@ -330,7 +326,7 @@ class SubWindow(QDialog):
     ##주의사항 : layout을 제거할 때는 layout내의 widget을 먼저 모두 제거해야 한다.
     def Delbutton_click(self, widget):
         count = self.setting_area.count()
-        print(count)
+
         if count >= 2:
             for i in reversed(range(widget.count())):
                 widget.itemAt(i).widget().setParent(None)

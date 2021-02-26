@@ -39,11 +39,7 @@ sock.recv(1024)
 
 sock.sendall(data_list.encode())
 '''
-dbconn = pymysql.connect(host = parameter.host, user = parameter.user,password = parameter.password, database = parameter.db,charset =  parameter.charset)
-dbcur = dbconn.cursor()
-
-sql = """select * from furnace1 order by current desc limit 1"""
-dbcur.execute(sql)
-process = list(dbcur.fetchall())
-process = list(process[0])
-print(process)
+test_list = [None, None, None, None, None]
+add_list = [1,2,3]
+test_list[:len(add_list)] = add_list
+print(test_list)

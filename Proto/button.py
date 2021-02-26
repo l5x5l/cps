@@ -27,7 +27,7 @@ class Base_Button(QPushButton):
         disable_list : disable widgets when button is start button (so, this widgets are able when button is modify button)
         able_list : able widgets when button is start button (so, this widgets area disable when button is modify button)
         """
-        msg = ('base ' + material + ' / ' + process+ " / "+ amount)
+        msg = ('base ' + material + ' ' + process+ ' ' + amount)
         msg_byte = msg.encode()
         sock.sendall(msg_byte)
 
@@ -64,8 +64,15 @@ class Detail_Button(QPushButton):
         self.setText(self.texts[self.now_start_button])
 
 
-    def button_click(self, gas:str, tempers:list, times:list, sock, disable_list, able_list):
-        msg_byte = ('detail ' + gas).encode()
+    def button_click(self, gas:str, tempers:list, heattimes:list, staytimes:list, sock, disable_list, able_list):
+        count = len(tempers)
+        heattime = ' '.join(heattimes)
+        staytime = ' '.join(staytimes)
+        temper = ' '.join(tempers)
+        
+        msg = str(count) + ' ' + temper + ' ' + heattime + ' ' + staytime + ' ' + gas
+
+        msg_byte = ('detail ' + msg).encode()
         sock.sendall(msg_byte)
 
         recv_msg = sock.recv(1024).decode()

@@ -99,15 +99,22 @@ def monitoring(dbconn:pymysql.Connection, furnace_pages):
     dbcur = dbconn.cursor()
     now_working_process = ['-', '-', '-', '-', '-', '-', '-', '-']
 
-    sql = """select id from process where output is null"""
+    #sql = """select id from process where output is null"""
+    sql = """select id from process"""
     dbcur.execute(sql)
     processes = dbcur.fetchall()
+    
+    print('testline 107')
+    print(processes)
 
     for process in processes:
         number = int(process[0][:2])
 
         if now_working_process[number - 1] == '-':
             now_working_process[number - 1] = process[0]
+        else:
+            if int(now_working_process[number - 1].split('_')[-1]) <= int(process[0].split('_')[-1]):
+                now_working_process[number - 1] = process[0]
         
         sql = """select * from furnace""" + str(number) +  """ where id = '""" + process[0] + """' order by current desc limit 50"""
         dbcur.execute(sql)
@@ -115,6 +122,9 @@ def monitoring(dbconn:pymysql.Connection, furnace_pages):
         for sensor in sensors:
             sensor = list(sensor)
         furnace_pages[number - 1].sensor_area.init_data(sensors)
+
+    print('testline 123')
+    print(now_working_process)
 
     while True:
         dbconn.commit()
@@ -136,6 +146,10 @@ def monitoring(dbconn:pymysql.Connection, furnace_pages):
             sql = """select * from furnace""" + str(number) +  """ where id = '""" + process[0] + """' order by current desc limit 1"""
             dbcur.execute(sql)
             sensors = list(dbcur.fetchall())
+
+            if len(sensors) == 0:
+                continue
+            
             sensors = list(sensors[0])
             furnace_pages[number - 1].sensor_area.update(sensors)
         time.sleep(parameter.time_interval)

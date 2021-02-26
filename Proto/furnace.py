@@ -110,10 +110,9 @@ class Furnace(Device):
         self.mean = temp
         self.process_time = time
 
-'''
+
 furnace = Furnace('165.246.44.133', 3050, sys.argv[1])
 furnace.connect()
 furnace.preprocessing()
 while True:
     furnace.furnace_main()
-'''

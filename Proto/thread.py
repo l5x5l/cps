@@ -25,13 +25,19 @@ def server_furnace(sock:socket.socket, number:int, datas:Datas, q:list, dbconn, 
             if elem[0] == str(number):
                 if elem[1] == 'start':
                     lock.acquire()
-                    process_id, mete, manu, inp, temper, time, gas = elem[2:]
-                    sql = "INSERT INTO process(id, material, amount, manufacture, temperature, time, gas) VALUES(%s, %s, %s, %s, %s, %s, %s)"
-                    val = (process_id, mete, int(inp), manu, int(temper), int(time), gas)
+                    temp_list, heattime_list, staytime_list = [None] * 10, [None] * 10, [None] * 10
+                    process_id, mete, manu, inp = elem[2:6]
+                    count = int(elem[6])
+                    temp_list[:count] = list(map(int, elem[7 : 7 + count]))
+                    heattime_list[:count] = list(map(int, elem[7 + count : 7 + (2 * count)]))
+                    staytime_list[:count] = list(map(int, elem[7 + (2 * count) : 7 + (3 * count)]))
+                    gas = elem[-1]
+                    sql = "INSERT INTO process(id, material, amount, manufacture, count, temper1, temper2, temper3, temper4, temper5, temper6, temper7, temper8, temper9, temper10, heattime1, heattime2, heattime3, heattime4, heattime5, heattime6, heattime7, heattime8, heattime9, heattime10, staytime1, staytime2, staytime3, staytime4, staytime5, staytime6, staytime7, staytime8, staytime9, staytime10,gas) VALUES(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"
+                    val = (process_id, mete, int(inp), manu, count, temp_list[0], temp_list[1], temp_list[2], temp_list[3], temp_list[4], temp_list[5], temp_list[6], temp_list[7], temp_list[8], temp_list[9], heattime_list[0], heattime_list[1], heattime_list[2], heattime_list[3], heattime_list[4], heattime_list[5], heattime_list[6], heattime_list[7], heattime_list[8], heattime_list[9], staytime_list[0], staytime_list[1], staytime_list[2], staytime_list[3], staytime_list[4], staytime_list[5], staytime_list[6], staytime_list[7], staytime_list[8], staytime_list[9], gas)
                     dbcur.execute(sql, val)
                     dbconn.commit()
 
-                    send_pkt = packet_detail_set_process(temper, time, gas)
+                    send_pkt = packet_detail_set_process(100, 100, gas)
                     sock.sendall(send_pkt)
 
                     datas.working_furnace_data(number, process_id)
@@ -248,7 +254,7 @@ def server_client2(sock:socket.socket, datas:Datas, q:list, dbconn, lock):
                 sock.sendall((parameter.error_str + '_num').encode())
         elif recv_msg_list[0] == 'base':
             if temp is not None and len(temp) == 0:
-                base_element = ' '.join(recv_msg_list[1:])
+                base_element = recv_msg_list[1:]
                 temp.append(base_element)
                 sock.sendall(parameter.success_str.encode())
             else:
@@ -262,8 +268,23 @@ def server_client2(sock:socket.socket, datas:Datas, q:list, dbconn, lock):
                 sock.sendall((parameter.error_str + '_base_fix').encode())
         elif recv_msg_list[0] == 'detail':
             if temp is not None and len(temp) == 1:
-                detail_element = ' '.join(recv_msg_list[1:])
+                detail_element = recv_msg_list[1:]
                 temp.append(detail_element)
+
+                #공정식별번호 생성
+                now = datetime.datetime.now()
+                month = '{:02d}'.format(now.month)
+                day = '{:02d}'.format(now.day)
+                hour = '{:02d}'.format(now.hour)
+                minute = '{:02d}'.format(now.minute)
+                process_id = '{:02d}'.format(int(number)) + '_' + str(now.year)[-2:] + month + day + hour + minute
+
+                q_msg = [str(number), 'start', process_id] + temp[0] + temp[1]
+
+                lock.acquire()
+                q.append(q_msg)
+                lock.release()
+
                 sock.sendall(parameter.success_str.encode())
             else:
                 sock.sendall((parameter.error_str + '_detail').encode())
@@ -279,6 +300,7 @@ def server_client2(sock:socket.socket, datas:Datas, q:list, dbconn, lock):
             sock.sendall(parameter.success_str.encode())
         else:
             sock.sendall((parameter.error_str + '_wrong msg type' + recv_msg_list[0]).encode())
+    sock.close()
 
 def server_simple(sock:socket.socket(), dbconn):
     #아직 while문 없다

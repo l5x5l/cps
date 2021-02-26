@@ -77,6 +77,7 @@ class Detail_Button(QPushButton):
 
         recv_msg = sock.recv(1024).decode()
         #print(recv_msg)
+
         '''
         if recv_msg != parameter.success_str:
             print(recv_msg)
@@ -89,13 +90,15 @@ class Detail_Button(QPushButton):
         for elem in able_list:
             elem.setEnabled(self.now_start_button)
 
+def stop_button_click(sock):
+    sock.sendall(b'end')
 
 def back_button_click(stk_w, sock):
     stk_w.setCurrentIndex(0)
     sock.sendall('esc'.encode())
 
     recv_msg = sock.recv(1024).decode()
-    print(recv_msg)
+    #print(recv_msg)
 
 def furnace_button_click(stk_w, sock, number:int):
     stk_w.setCurrentIndex(number)
@@ -103,4 +106,4 @@ def furnace_button_click(stk_w, sock, number:int):
     sock.sendall(send_msg.encode())
 
     recv_msg = sock.recv(1024).decode()
-    print(recv_msg)
+    #print(recv_msg)

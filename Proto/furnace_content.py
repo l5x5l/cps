@@ -189,6 +189,7 @@ class FurnaceContent(QWidget):
 
         #detail element setting
         detail_area = QVBoxLayout()
+        buttons_in_detail_area = QHBoxLayout()
 
         set_temper_time_button = QPushButton('시간/온도 상세설정')
         set_temper_time_button.clicked.connect(self.set_detail_temp_time_click)
@@ -199,10 +200,15 @@ class FurnaceContent(QWidget):
         gas_opt.addItem('gas3')
 
         set_detail_button = button.Detail_Button(parameter.decision_str)
+        end_process_button = QPushButton('공정중지')
 
         detail_area.addWidget(set_temper_time_button)
         detail_area.addWidget(gas_opt)
-        detail_area.addWidget(set_detail_button)       
+
+        buttons_in_detail_area.addWidget(set_detail_button) 
+        buttons_in_detail_area.addWidget(end_process_button)
+
+        detail_area.addLayout(buttons_in_detail_area)      
 
         '''
         base_able.append(material_opt)
@@ -217,7 +223,8 @@ class FurnaceContent(QWidget):
         detail_able.append(set_temper_time_button)
         '''
         base_area.itemAt(3).widget().clicked.connect(lambda:set_base_button.button_click(str(material_opt.currentText()), str(process_opt.currentText()), str(amount_opt.currentText()), self.sock, base_disable, base_able))
-        detail_area.itemAt(2).widget().clicked.connect(lambda:set_detail_button.button_click(str(gas_opt.currentText()), self.temp_list, self.heattime_list, self.staytime_list,self.sock, detail_disable, detail_able))
+        detail_area.itemAt(2).itemAt(0).widget().clicked.connect(lambda:set_detail_button.button_click(str(gas_opt.currentText()), self.temp_list, self.heattime_list, self.staytime_list,self.sock, detail_disable, detail_able))
+        detail_area.itemAt(2).itemAt(1).widget().clicked.connect(lambda:button.stop_button_click(self.sock))
 
         self.right_area.addLayout(base_area,2)
         self.right_area.addLayout(detail_area,2)

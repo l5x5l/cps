@@ -62,6 +62,7 @@ def server_furnace(sock:socket.socket, number:int, datas:Datas, q:list, dbconn, 
             if elem[0] == str(number):
                 print('[server] ' + elem[0] + " " + elem[1])
                 if elem[1] == 'end':
+                    print('recv')
                     end_flag = True
                     sock.sendall(b'end signal')
                     break
@@ -290,8 +291,14 @@ def server_client2(sock:socket.socket, datas:Datas, q:list, dbconn, lock):
                 sock.sendall(parameter.success_str.encode())
             else:
                 sock.sendall((parameter.error_str + '_detail_fix').encode())
-        elif recv_msg_list[0] == 'stop':
+        elif recv_msg_list[0] == 'end':
             temp.clear()
+            q_msg = [str(number), recv_msg_list[0]]
+
+            lock.acquire()
+            q.append(q_msg)
+            lock.release()
+
             sock.sendall(parameter.success_str.encode())
         else:
             sock.sendall((parameter.error_str + '_wrong msg type' + recv_msg_list[0]).encode())

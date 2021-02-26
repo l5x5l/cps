@@ -32,7 +32,7 @@ class Base_Button(QPushButton):
         sock.sendall(msg_byte)
 
         recv_msg = sock.recv(1024).decode()
-        print(recv_msg)
+        #print(recv_msg)
         '''
         if recv_msg != parameter.success_str:
             print(recv_msg)
@@ -76,7 +76,7 @@ class Detail_Button(QPushButton):
         sock.sendall(msg_byte)
 
         recv_msg = sock.recv(1024).decode()
-        print(recv_msg)
+        #print(recv_msg)
         '''
         if recv_msg != parameter.success_str:
             print(recv_msg)

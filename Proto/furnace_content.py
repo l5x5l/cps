@@ -22,8 +22,8 @@ class PlotCanvas(FigureCanvas):
         self.temp4 = self.fig.add_subplot(424, xlim=(0, 50), ylim=(0, 1024))
         self.temp5 = self.fig.add_subplot(425, xlim=(0, 50), ylim=(0, 1024))
         self.temp6 = self.fig.add_subplot(426, xlim=(0, 50), ylim=(0, 1024))
-        self.flow = self.fig.add_subplot(427, xlim=(0, 50), ylim=(0, 1024))
-        self.press = self.fig.add_subplot(428,xlim=(0, 50), ylim=(0, 1024))
+        self.flow = self.fig.add_subplot(427, xlim=(0, 50), ylim=(0, 100))
+        self.press = self.fig.add_subplot(428,xlim=(0, 50), ylim=(0, 100))
 
         self.compute_initial_figure()
         FigureCanvas.__init__(self, self.fig)

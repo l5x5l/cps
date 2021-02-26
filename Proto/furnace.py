@@ -8,15 +8,33 @@ import sys
 
 class Furnace(Device):
     def __init__(self, host, port, number):
+        """
+        number : furnace number
+        index : used for sensor's temperature
+        tempers : temperature list
+        heattimes : 승온 시간들
+        staytimes : 현 온도를 유지하는 시간들
+        mean : 가상의 센서값을 만들 때 사용 (평균)
+        sd : 가상의 센서값을 만들 때 사용 (표준편차)
+        inclication : 가상의 센서값을 만들 때 사용, 승온시 온도의 상승폭을 나타냄
+        process_time : 공정의 총 시간을 나타내며, 현재는 실시간이 아니라 반복 횟수로 사용됨
+        current_time : 공정의 현 시간
+        gas : 공정에 사용되는 가스의 종류
+        """
         self.number = number
         self.host = host
         self.port = port
         self.serv_addr = (host, port)
         self.sock = None
 
-        self.mean = None
+        self.index = 0
+        self.tempers = []
+        self.heattimes = []
+        self.staytimes = []
+
+        self.mean = 0
         self.sb = None
-        self.updraft = None
+        self.inclination = None
         #여기서 process_time은 실시간이 아니라 반복횟수로 여긴다. (추후 시간으로 수정 예정)
         self.process_time = None
         self.current_time = None
@@ -30,25 +48,50 @@ class Furnace(Device):
         self.send_msg('furnace ' + str(self.number), self.sock)
 
 
+    def set_mean(self):
+        if self.index >= len(self.tempers):
+            return
+        else:
+            if self.current_time < self.heattimes[self.index]:
+                if self.inclination is None:
+                    self.inclination = self.tempers[0] / self.heattimes[0]
+                self.mean += int(self.inclination)
+
+            elif self.current_time < self.staytimes[self.index]:
+                #self.mean = self.tempers[self.index]
+                pass
+            else:
+                self.index += 1
+                if self.index >= len(self.tempers):
+                    return
+                else:
+                    self.inclination = (self.tempers[self.index] - self.tempers[self.index - 1]) / (self.heattimes[self.index] - self.staytimes[self.index - 1])
+                    self.mean += int(self.inclination)
+            
+
+
     #실제 센서값을 재현하기 위해 사용
     def get_sensors(self):
-        try:
-            temp = []
-            for i in range(6):
-                temp.append(int(random.gauss(self.mean, self.sb)))
-            temp1, temp2, temp3, temp4, temp5, temp6 = temp
-            touch = 'close'
+        #try:
+        temp = []
+        self.set_mean()
+        for i in range(6):
+            temp.append(int(random.gauss(self.mean, self.sb)))
+        temp1, temp2, temp3, temp4, temp5, temp6 = temp
+        touch = 'close'
 
-            flow = int(random.gauss(70, 2))
-            press = int(random.gauss(70, 2))
+        flow = int(random.gauss(70, 2))
+        press = int(random.gauss(70, 2))
+        '''
         except Exception as e:
             print('[furnace] error ', e)
             return
+        '''
         
-        print('[furnace] test line 49')
-        print(str(self.process_time) + ' : ' + str(self.current_time))
+        #print('[furnace] test line 49')
+        #print(str(self.process_time) + ' : ' + str(self.current_time))
 
-        if self.process_time < self.current_time:
+        if self.process_time <= self.current_time:
             isLast = 'True'
         else:
             isLast = 'False'
@@ -70,7 +113,7 @@ class Furnace(Device):
         send_pkt = packet_sensor(touch, temp1, temp2, temp3, temp4, temp5, temp6, flow, press, isLast)
         self.send_msg(send_pkt, self.sock)
 
-        print('[furnace] test line 70 ' + isLast)
+
         if isLast == 'True':
             print('[furnace] test line')
             self.close()
@@ -86,10 +129,13 @@ class Furnace(Device):
 
     def preprocessing(self):
         recv_pkt = self.recv_msg(self.sock)
-        print('[furnace-test line 80] recv pkt' + recv_pkt)
-        temp, time, gas = read_packet(recv_pkt)
+        print('[furnace-test line 122] recv pkt' + recv_pkt)
+        count, temp, heattime, staytime, gas = read_packet(recv_pkt)
         
-        self.process_setting(temp, time, gas)
+        print('[furnace-test line 125] recv pkt')
+        print(temp)
+
+        self.process_setting(count, temp, heattime, staytime, gas)
 
 
     def modify(self):
@@ -98,9 +144,21 @@ class Furnace(Device):
         self.modify_setting(temp, time)
 
 
-    def process_setting(self, temp, time, gas):
-        self.mean = temp
-        self.process_time = time
+    def process_setting(self, count, temp, heattime, staytime, gas):
+
+        totaltime = 0
+        self.tempers = temp
+        self.heattimes.append(heattime[0])
+        self.staytimes.append(self.heattimes[0] + staytime[0])
+        totaltime += heattime[0]
+        totaltime += staytime[0]
+        for i in range(1, count):
+            self.heattimes.append(self.staytimes[-1] + heattime[i])
+            self.staytimes.append(self.heattimes[-1] + staytime[i])
+            totaltime += heattime[i]
+            totaltime += staytime[i]  
+            
+        self.process_time = totaltime
         self.current_time = 0
         self.sb = 2
         self.gas = gas

@@ -23,6 +23,14 @@ def packet_fix(temper:int, time:int):
     temp_byte = temp_str.encode()
     return temp_byte
 
+def packet_detail_setting(count:int, tempers:list, heattimes:list, staytimes:list, gas:str):
+    temp = '_'.join(tempers)
+    heattime = '_'.join(heattimes)
+    staytime = '_'.join(staytimes)
+    temp_str = "ds {0} {1} {2} {3} {4}".format(str(count), temp, heattime, staytime, gas)
+    temp_byte = temp_str.encode()
+    return temp_byte
+
 ##UI_custom에 있는 방식으로 교체 필요, 일단 아직은 안함
 ## + 추가적으로, None값을 전달하는 방식으로 mariadb에 null값을 넣을 수 있다.
 
@@ -52,3 +60,15 @@ def read_packet(packet):
     elif packet[0] == 'fix':
         temper, time = packet[1:]
         return int(temper), int(time)
+    elif packet[0] == 'ds':
+        print(packet[1:])
+        count, temp, heattime, staytime, gas = packet[1:]
+        temp_list = temp.split('_')
+        heattime_list = heattime.split('_')
+        staytime_list = staytime.split('_')
+        
+        temp_list = list(map(int, temp_list))
+        heattime_list = list(map(int, heattime_list))
+        staytime_list = list(map(int, staytime_list))
+
+        return int(count), temp_list, heattime_list, staytime_list, gas

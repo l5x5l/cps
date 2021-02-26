@@ -37,7 +37,8 @@ def server_furnace(sock:socket.socket, number:int, datas:Datas, q:list, dbconn, 
                     dbcur.execute(sql, val)
                     dbconn.commit()
 
-                    send_pkt = packet_detail_set_process(100, 100, gas)
+                    #send_pkt = packet_detail_set_process(100, 100, gas)
+                    send_pkt = packet_detail_setting(count, elem[7:7+count], elem[7 + count : 7 + (2 * count)], elem[7 + (2 * count) : 7 + (3 * count)], gas)
                     sock.sendall(send_pkt)
 
                     datas.working_furnace_data(number, process_id)
@@ -51,11 +52,6 @@ def server_furnace(sock:socket.socket, number:int, datas:Datas, q:list, dbconn, 
                     q.remove(elem)
                     lock.release()
         t.sleep(time_interval)
-
-    print(datas.datas[index]['state'])
-
-    print('testline thread 51')
-    print(q)
 
 
     #열처리로가 작업을 시작한 이후 실행되는 부분
@@ -89,8 +85,6 @@ def server_furnace(sock:socket.socket, number:int, datas:Datas, q:list, dbconn, 
                 q.remove(elem)
         lock.release()
 
-        print('testline 86')
-        print(no_signal)
         if no_signal:
             sock.sendall(b'no_signal')
 
@@ -127,6 +121,7 @@ def server_furnace(sock:socket.socket, number:int, datas:Datas, q:list, dbconn, 
 
         #정상 종료
         if last == 'True':
+            print('testline in thread 131')
             sock.sendall(b'end signal')
             sql = "UPDATE process SET output = %s WHERE id = %s"
             val = (int(0), process_id)

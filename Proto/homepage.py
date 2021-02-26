@@ -102,10 +102,7 @@ def monitoring(dbconn:pymysql.Connection, furnace_pages):
     #sql = """select id from process where output is null"""
     sql = """select id from process"""
     dbcur.execute(sql)
-    processes = dbcur.fetchall()
-    
-    print('testline 107')
-    print(processes)
+    processes = dbcur.fetchall()   
 
     for process in processes:
         number = int(process[0][:2])

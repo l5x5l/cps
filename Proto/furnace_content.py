@@ -12,7 +12,7 @@ import matplotlib.animation as animation
 
 import random
 
-class PlotCanvas(FigureCanvas):
+class SensorPlotCanvas(FigureCanvas):
     def __init__(self, parent = None, width = 5, height = 4, dpi = 100):
         self.fig = Figure()
 
@@ -23,16 +23,16 @@ class PlotCanvas(FigureCanvas):
         self.temp5 = self.fig.add_subplot(425, xlim=(0, 50), ylim=(0, 1024))
         self.temp6 = self.fig.add_subplot(426, xlim=(0, 50), ylim=(0, 1024))
         self.flow = self.fig.add_subplot(427, xlim=(0, 50), ylim=(0, 100))
-        self.press = self.fig.add_subplot(428,xlim=(0, 50), ylim=(0, 100))
+        self.press = self.fig.add_subplot(428, xlim=(0, 50), ylim=(0, 100))
 
         self.compute_initial_figure()
         FigureCanvas.__init__(self, self.fig)
         self.setParent(parent)
+        self.draw()
+        self.flush_events()
 
     def compute_initial_figure(self):
         pass
-
-
 
 class SensorPlot(QWidget):
     def __init__(self):
@@ -41,7 +41,7 @@ class SensorPlot(QWidget):
         self.base_box = QHBoxLayout()
 
         self.left_area = QVBoxLayout()
-        self.canvas = PlotCanvas(self, width=10, height=8, dpi=100)
+        self.canvas = SensorPlotCanvas(self, width=10, height=8, dpi=100)
         self.left_area.addWidget(self.canvas)
 
         #middle area에도 센서값을 표시하는 구역이 존재하므로 통합
@@ -50,8 +50,8 @@ class SensorPlot(QWidget):
 
         furnace_number = QLabel('testing')
 
-        self.middle_area.addWidget(furnace_number)
-        self.middle_area.addWidget(furnace_img)
+        self.middle_area.addWidget(furnace_number, 7)
+        self.middle_area.addWidget(furnace_img, 3)
 
 
         self.base_box.addLayout(self.left_area, 2)
@@ -60,7 +60,7 @@ class SensorPlot(QWidget):
         self.setLayout(self.base_box)
 
         self.list = [self.canvas.temp1, self.canvas.temp2, self.canvas.temp3, self.canvas.temp4, self.canvas.temp5, self.canvas.temp6,self.canvas.flow, self.canvas.press]
-        self.line = ["", "", "", "", "", "", "", ""]
+        self.line = ["", "", "", "", "", "", "", ""]    #None 대신 ""을 사용함
         
         for i in range(len(self.list)):              
             self.x = np.arange(50)
@@ -114,8 +114,7 @@ class SensorPlot(QWidget):
         datas : sensor data -> [temp1~6, flow, press, touch]
         type of datas elemnt without touch : int
         """
-        #print(self.line[0].get_ydata())
-        #print(datas)
+
         for index, _ in enumerate(self.line):
             #가장 앞에 있는게 touch 인듯
             y = int(datas[index + 3])
@@ -127,6 +126,39 @@ class SensorPlot(QWidget):
         self.canvas.draw()
         self.canvas.flush_events()
 
+
+class SettingPlotCanvas(FigureCanvas):
+    def __init__(self, parent=None, width = 5, height = 4, dpi = 100):
+        self.fig = Figure()
+        self.ax = self.fig.add_subplot(111, xlim=(0,50), ylim=(0,1000))
+        self.compute_initial_figure()
+        FigureCanvas.__init__(self, self.fig)
+        self.setParent(parent)
+
+    def compute_initial_figure(self):
+        pass
+
+
+
+class SettingPlot(QWidget):
+    def __init__(self):
+        QMainWindow.__init__(self)
+        self.base_box = QVBoxLayout()
+        self.canvas = SettingPlotCanvas(self, 10, 8, 100)
+        self.plot, = self.canvas.ax.plot([0],[0], animated=False)
+        self.base_box.addWidget(self.canvas)
+        self.setLayout(self.base_box)
+        self.canvas.draw()
+
+    def update(self, x, y):
+        self.canvas.ax.set_xlim(0, x[-1])
+        self.canvas.ax.set_ylim(0, max(y) + 200)
+        self.plot.set_ydata(y)
+        self.plot.set_xdata(x)
+        self.canvas.draw()
+        self.canvas.flush_events()
+        
+        
 
 class FurnaceContent(QWidget):
     def __init__(self, furnace_number:int, sock, dbconn):
@@ -149,7 +181,7 @@ class FurnaceContent(QWidget):
         base_disable = []
         base_able = []
 
-        #left area : sensor data (temp1~6, flow, press)
+        #sensor area : sensor data (temp1~6, flow, press)
         self.sensor_area = SensorPlot()
         '''
         #middle area : furnace image and sensor data
@@ -163,7 +195,6 @@ class FurnaceContent(QWidget):
         self.right_area = QVBoxLayout()
         
         #base element setting
-        #버튼은 마지막에 layout에 추가하기 직전에 추가된다.  
         base_area = QVBoxLayout()
         material_opt = QComboBox(self)
         material_opt.addItem('material1')
@@ -272,7 +303,13 @@ class SubWindow(QDialog):
         self.layout = QHBoxLayout()
 
         #time and temper graph area
-        self.graph_area = QWidget()
+        self.graph_area = QVBoxLayout()
+        self.setting_graph = SettingPlot()
+        btn_graph_renew = QPushButton("설정 미리보기")
+        btn_graph_renew.clicked.connect(self.Renewbutton_click)
+        self.graph_area.addWidget(self.setting_graph, 9)
+        self.graph_area.addWidget(btn_graph_renew, 1)
+        
 
         #area where input time, temper and button placed
         self.right_area = QVBoxLayout()
@@ -281,12 +318,7 @@ class SubWindow(QDialog):
         #area where input time and temper
         self.setting_area = QVBoxLayout()
         self.button_area = QVBoxLayout()
-        '''
-        self.test_opt = setting_row()
-        self.test_opt.addItem('1a')
-        self.test_opt.addItem('2b')
-        self.test_opt.addItem('3c')
-        '''
+
 
         btnOK = QPushButton("확인")
         btnOK.clicked.connect(self.OKbutton_click)
@@ -304,7 +336,7 @@ class SubWindow(QDialog):
         self.right_area.addLayout(self.setting_area, 5)
         self.right_area.addLayout(self.button_area, 3)
 
-        self.layout.addWidget(self.graph_area, 7)
+        self.layout.addLayout(self.graph_area, 7)
         self.layout.addLayout(self.right_area, 3)
 
         self.setLayout(self.layout)
@@ -338,11 +370,20 @@ class SubWindow(QDialog):
             for i in reversed(range(widget.count())):
                 widget.itemAt(i).widget().setParent(None)
             self.setting_area.removeItem(widget)
-            '''
-            print(self.setting_area.itemAt(0).itemAt(number))
-            print(self.layout.itemAt(1).itemAt(0).itemAt(number))
-            print(self.layout.count())
-            '''
+
+    def Renewbutton_click(self):
+        time_list = [0]
+        temp_list = [0]
+        
+        for i in range(self.setting_area.count()):
+            target = self.setting_area.itemAt(i)
+            temp_list.append(int(target.itemAt(0).widget().text()))
+            temp_list.append(int(target.itemAt(0).widget().text()))
+            time_list.append(time_list[-1] + int(target.itemAt(1).widget().text()))
+            time_list.append(time_list[-1] + int(target.itemAt(2).widget().text()))
+
+        self.setting_graph.update(time_list, temp_list)
+        
 
 
     def OKbutton_click(self):

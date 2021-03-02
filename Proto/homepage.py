@@ -8,6 +8,7 @@ import threading
 import time
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
+from PyQt5.QtGui import QPixmap
 
 
 class Select(QWidget):
@@ -55,15 +56,21 @@ class HomePage(QWidget):
 
         #setting area, where setting button, back button and icon image placed
         self.setting_area = QVBoxLayout()
-        icon = QWidget()
-        icon.setStyleSheet('background-color:#7FFFD4;')
+        
+        icon = QLabel()
+        icon.setPixmap(QPixmap('.\\images\\logo.png'))
+
+
+        empty = QWidget()
+
         set_button = QPushButton('setting')
         back_button = QPushButton('back')
         back_button.clicked.connect(lambda:button.back_button_click(self.dyn_content, self.sock))
 
-        self.setting_area.addWidget(icon)
-        self.setting_area.addWidget(set_button)
-        self.setting_area.addWidget(back_button)
+        self.setting_area.addWidget(icon, 1)
+        self.setting_area.addWidget(empty, 7)
+        self.setting_area.addWidget(set_button, 1)
+        self.setting_area.addWidget(back_button, 1)
 
         #changeable area
         self.content_area = Select(self.dyn_content, self.sock)
@@ -94,7 +101,7 @@ def furnace_button_click(stk_w, index:int):
 
 
 #for test
-def monitoring(dbconn:pymysql.Connection, furnace_pages):
+def monitoring(dbconn, furnace_pages):
     dbconn.commit()
     dbcur = dbconn.cursor()
     now_working_process = ['-', '-', '-', '-', '-', '-', '-', '-']
@@ -120,8 +127,8 @@ def monitoring(dbconn:pymysql.Connection, furnace_pages):
             sensor = list(sensor)
         furnace_pages[number - 1].sensor_area.init_data(sensors)
 
-    print('testline 123')
-    print(now_working_process)
+    #print('testline 123')
+    #print(now_working_process)
 
     while True:
         dbconn.commit()
@@ -150,6 +157,8 @@ def monitoring(dbconn:pymysql.Connection, furnace_pages):
             sensors = list(sensors[0])
             furnace_pages[number - 1].sensor_area.update(sensors)
         time.sleep(parameter.time_interval)
+    dbcur.close()
+
 
 if __name__ == "__main__":
     #C = client.Client(parameter.host, parameter.port)

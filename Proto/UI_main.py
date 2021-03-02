@@ -17,4 +17,5 @@ if __name__ == "__main__":
     form = homepage.HomePage(C.sock, dbconn)
     form.show()
 
+    #dbconn.close()
     sys.exit(app.exec_())

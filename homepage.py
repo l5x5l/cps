@@ -128,9 +128,7 @@ def monitoring(dbconn, furnace_pages):
         #furnace_pages[number - 1].sensor_area.init_data(sensors) #test area 영역 대신 원래 사용되던 코드
 
         
-        print('testline in homepage.py 129, to test about ongoing process')
-        ##test area
-        sql = """select * from process"""
+        sql = """select * from process where id = '""" + process[0] + """'"""
         dbcur.execute(sql)
         processes = list(dbcur.fetchall()[0]) 
         furnace_pages[number - 1].init_data(processes, sensors)

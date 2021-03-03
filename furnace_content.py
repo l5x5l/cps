@@ -254,6 +254,7 @@ class FurnaceContent(QWidget):
 
         set_detail_button = button.Detail_Button(parameter.decision_str)
         end_process_button = QPushButton('공정중지')
+        end_process_button.setStyleSheet("background-color: red")
 
         detail_area.addWidget(set_temper_time_button)
         detail_area.addWidget(gas_opt)
@@ -308,6 +309,7 @@ class FurnaceContent(QWidget):
         gas = process_setting[-2]
 
         number = process_id[:2]
+        print('furnace content 312 : ' + number)
 
         temp_list = list(map(str, temp_list))
         heattime_list = list(map(str, heattime_list))

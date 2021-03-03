@@ -218,6 +218,7 @@ def server_client(sock:socket.socket, datas:Datas, q:list, dbconn, lock):
             sock.sendall(parameter.success_str.encode())
         elif recv_msg_list[0] == 'init':
             number = int(recv_msg_list[1])
+            print('thread 221 : ' + str(number))
             base_element = recv_msg_list[2:5]
             detail_element = recv_msg_list[5:]
             temp = order_list[number - 1]

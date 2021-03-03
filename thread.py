@@ -17,7 +17,7 @@ def server_furnace(sock:socket.socket, number:int, datas:Datas, q:list, dbconn, 
     index = number - 1
     time_interval = parameter.time_interval
 
-    #연결한 열처리로가 작업을 시작할 때까지 대기후 작업을 시작하는 신호를 수신한 경우 공정 설정값 전송
+    #wait until recv process operation order
     print(datas.datas[index]['state'])
     while datas.datas[index]['state'] == 'on':
 
@@ -53,7 +53,7 @@ def server_furnace(sock:socket.socket, number:int, datas:Datas, q:list, dbconn, 
         t.sleep(time_interval)
 
 
-    #열처리로가 작업을 시작한 이후 실행되는 부분
+    #after furnace starts process
     while True:
         no_signal = True
         lock.acquire()
@@ -88,7 +88,7 @@ def server_furnace(sock:socket.socket, number:int, datas:Datas, q:list, dbconn, 
         if no_signal:
             sock.sendall(b'no_signal')
 
-        #비정상 종료 (클라이언트에서 종료 신호를 보낸 경우)
+        #abnormal end of process
         if end_flag:
             sql = "UPDATE process SET output = %s WHERE id = %s"
             val = (int(1), process_id)
@@ -100,26 +100,24 @@ def server_furnace(sock:socket.socket, number:int, datas:Datas, q:list, dbconn, 
             lock.release()
             break
         
-        #센서값을 열처리로로부터 받아옴
+        #recv sensor value from furnace
         pkt = sock.recv(1024)
         touch, temp1, temp2, temp3, temp4, temp5, temp6, flow, press, last = read_packet(pkt)
-        #print('[server] recv sensor values\n')
-        #print(touch + " : " + str(temp1) + " : " + str(temp2) + " : " + str(temp3) + " : " + str(temp4) + " : " + str(temp5) + " : " + str(temp6) + " : " + str(flow) )
 
-        #현재 시각을 나타내는 current 생성(db의 primary key)
+        #create current value which represent current time
         current = datetime.datetime.now()
         hour = '{:02d}'.format(current.hour)
         minute = '{:02d}'.format(current.minute)
         second = '{:02d}'.format(current.second)
         current_time = hour + minute + second
 
-        #센서값을 db에 저장
+        #save sensor value to database
         sql = """INSERT INTO furnace%s(current, id, touch, temp1, temp2, temp3, temp4, temp5, temp6, flow, press) VALUES(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"""
         val = (number, current_time, process_id, touch, temp1, temp2, temp3, temp4, temp5, temp6, flow, press)
         dbcur.execute(sql, val)
         dbconn.commit()
 
-        #정상 종료
+        #normal end of process
         if last == 'True':
             print('testline in thread 131')
             sock.sendall(b'end signal')
@@ -137,7 +135,7 @@ def server_furnace(sock:socket.socket, number:int, datas:Datas, q:list, dbconn, 
     sock.close()
 
 
-##시작할 때 데이터베이스 읽어와서 실행중인 열처리로에 대해서는 order_list를 채워넣어야 한다.
+
 def server_client(sock:socket.socket, datas:Datas, q:list, dbconn, lock):
     dbcur = dbconn.cursor()
     order_list = []
@@ -226,6 +224,8 @@ def server_client(sock:socket.socket, datas:Datas, q:list, dbconn, lock):
             temp.append(base_element)
             temp.append(detail_element)
             temp = None
+
+            sock.sendall(parameter.success_str.encode())
         else:
             sock.sendall((parameter.error_str + '_wrong msg type' + recv_msg_list[0]).encode())
     sock.close()

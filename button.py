@@ -15,6 +15,7 @@ class Base_Button(QPushButton):
         self.setStyleSheet("background-color: green")
         self.able_list = None
         self.disable_list = None
+        self.base_opt = 'base'
 
         self.setCheckable(True)
 
@@ -24,6 +25,10 @@ class Base_Button(QPushButton):
         self.setStyleSheet("background-color: %s" % (self.colors[self.now_start_button]))
         self.setText(self.texts[self.now_start_button])
 
+        if self.now_start_button:
+            self.base_opt = 'base'
+        else:
+            self.base_opt = 'base_fix'
 
     def set_change_widget_list(self, disable_list, able_list):
         self.able_list = able_list
@@ -36,9 +41,9 @@ class Base_Button(QPushButton):
         able_list : able widgets when button is start button (so, this widgets area disable when button is modify button)
         """
         if self.now_start_button:
-            msg = ('base ' + material + ' ' + process+ ' ' + amount)
+            msg = (self.base_opt + ' ' + material + ' ' + process+ ' ' + amount)
         else:
-            msg = 'base_fix'
+            msg = self.base_opt
 
         msg_byte = msg.encode()
         sock.sendall(msg_byte)
@@ -64,6 +69,7 @@ class Detail_Button(QPushButton):
         self.setStyleSheet("background-color: green")
         self.able_list = None
         self.disable_list = None
+        self.base_opt = 'detail'
 
         self.setCheckable(True)
 
@@ -72,6 +78,11 @@ class Detail_Button(QPushButton):
         self.now_start_button = not self.now_start_button
         self.setStyleSheet("background-color: %s" % (self.colors[self.now_start_button]))
         self.setText(self.texts[self.now_start_button])
+
+        if self.now_start_button:
+            self.base_opt = 'detail'
+        else:
+            self.base_opt = 'detail_fix'
 
     def set_change_widget_list(self, disable_list, able_list):
         self.able_list = able_list
@@ -83,13 +94,15 @@ class Detail_Button(QPushButton):
         staytime = ' '.join(staytimes)
         temper = ' '.join(tempers)
         
-        msg = str(count) + ' ' + temper + ' ' + heattime + ' ' + staytime + ' ' + gas
+        if self.now_start_button:
+            msg = self.base_opt + ' ' + str(count) + ' ' + temper + ' ' + heattime + ' ' + staytime + ' ' + gas
+        else:
+            msg = self.base_opt
 
-        msg_byte = ('detail ' + msg).encode()
+        msg_byte = msg.encode()
         sock.sendall(msg_byte)
 
         recv_msg = sock.recv(1024).decode()
-        #print(recv_msg)
 
         self.custom_toggle()
         for elem in self.disable_list:

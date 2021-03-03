@@ -14,6 +14,9 @@ import matplotlib.animation as animation
 import random
 
 class SensorPlotCanvas(FigureCanvas):
+    """
+    group of plots which represent sensor value in realtime
+    """
     def __init__(self, parent = None, width = 5, height = 4, dpi = 100):
         self.fig = Figure()
 
@@ -36,6 +39,13 @@ class SensorPlotCanvas(FigureCanvas):
         pass
 
 class SensorPlot(QWidget):
+    """
+    layout which represents sensor values in plot and table
+
+    base_box : main layout of SensorPlot
+    left_area : represents 8 sensor value on plot form
+    middle_area : represents 4 sensor value on table form 
+    """
     def __init__(self):
         QMainWindow.__init__(self)
 
@@ -130,6 +140,9 @@ class SensorPlot(QWidget):
 
 
 class SettingPlotCanvas(FigureCanvas):
+    """
+    plot which represents detail temperature and time setting 
+    """
     def __init__(self, parent=None, width = 5, height = 4, dpi = 100):
         self.fig = Figure()
         self.ax = self.fig.add_subplot(111, xlim=(0,50), ylim=(0,1000))
@@ -143,6 +156,9 @@ class SettingPlotCanvas(FigureCanvas):
 
 
 class SettingPlot(QWidget):
+    """
+    layout which represent detail temperature and time setting plot 
+    """
     def __init__(self):
         QMainWindow.__init__(self)
         self.base_box = QVBoxLayout()
@@ -163,6 +179,17 @@ class SettingPlot(QWidget):
         
 
 class FurnaceContent(QWidget):
+    """
+    stacked page which represents furnace's state
+
+    setting_popup = detail temperature and time setting popup page
+
+    number = furnace number
+    sock = socket (used when communicate with server)
+    dbconn = database conncection
+
+    layout = main layout of FuranceContent
+    """
     def __init__(self, furnace_number:int, sock, dbconn):
         super().__init__()
         self.setting_popup = SubWindow()
@@ -185,14 +212,7 @@ class FurnaceContent(QWidget):
 
         #sensor area : sensor data (temp1~6, flow, press)
         self.sensor_area = SensorPlot()
-        '''
-        #middle area : furnace image and sensor data
-        self.middle_area = QVBoxLayout()
-        furnace_img = QWidget()
-        furnace_number = QLabel(str(self.number))
-        self.middle_area.addWidget(furnace_number)
-        self.middle_area.addWidget(furnace_img)
-        '''
+
         #right_area : select base element and detail element
         self.right_area = QVBoxLayout()
         
@@ -281,7 +301,7 @@ class FurnaceContent(QWidget):
 
     def init_data(self, process_setting, sensors):
         """
-        process_setting = [process_id, material, amount, process, count, temp_list, heattime, staytime, gas, output]
+        process_setting's format =  [process_id, material, amount, process, count, temp_list, heattime, staytime, gas, output]
         """
         process_id, material, amount, process, count = process_setting[:5]
         temp_list, heattime_list, staytime_list = process_setting[5:5+count], process_setting[15:15+count], process_setting[25:25+count]
@@ -321,8 +341,12 @@ class FurnaceContent(QWidget):
         detail_msg = str(count) + ' ' + temp + ' ' + heattime + ' ' + staytime + ' ' + gas
         init_msg = 'init ' + number + ' ' + base_msg + ' ' + detail_msg
 
-        ##서버에 위 데이터를 전송해야 함
+        init_byte = init_msg.encode()
+        self.sock.sendall(init_byte)
+        #confirm msg from server
+        _ = self.sock.recv(1024)
 
+        #init plot with sensor datas
         self.sensor_area.init_data(sensors)
 
         for widget in self.base_able:

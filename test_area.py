@@ -39,7 +39,16 @@ sock.recv(1024)
 
 sock.sendall(data_list.encode())
 '''
-test_list = [None, None, None, None, None]
-add_list = [1,2,3]
-test_list[:len(add_list)] = add_list
-print(test_list)
+dbconn = pymysql.connect(host=parameter.host, user = parameter.user, password=parameter.password, database=parameter.db, charset = parameter.charset)
+dbcur = dbconn.cursor()
+sql = """select * from process"""
+dbcur.execute(sql)
+processes = list(dbcur.fetchall()[0]) 
+temp_list = [None] * 10
+heat_list = [None] * 10
+stay_list = [None] * 10
+process_id, material, amount, process, count = processes[:5]
+temp_list, heat_list, stay_list = processes[5:5+count], processes[15:15+count], processes[25:25+count]
+gas = processes[-2]
+last = processes[-1]
+print(process_id[:2])

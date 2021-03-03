@@ -17,3 +17,6 @@ modify_str = "수정"
 
 success_str = 'success'
 error_str = 'error'
+
+test_sql = """select id from process"""
+sql = """select id from process where output is null"""

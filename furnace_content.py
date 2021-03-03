@@ -5,6 +5,7 @@ import sys
 import pymysql
 from PyQt5 import QtCore
 from PyQt5.QtWidgets import *
+from PyQt5.QtGui import QPixmap
 import numpy as np
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
@@ -46,12 +47,13 @@ class SensorPlot(QWidget):
 
         #middle area에도 센서값을 표시하는 구역이 존재하므로 통합
         self.middle_area = QVBoxLayout()
-        furnace_img = QWidget()
+        furnace_img = QLabel()
+        furnace_img.setPixmap(QPixmap('.\\images\\furnace.png'))
 
-        furnace_number = QLabel('testing')
+        sensor_text_area = QTableWidget(self) #나중에 세부적으로 설정할 예정
 
-        self.middle_area.addWidget(furnace_number, 7)
-        self.middle_area.addWidget(furnace_img, 3)
+        self.middle_area.addWidget(furnace_img, 7)
+        self.middle_area.addWidget(sensor_text_area, 3)
 
 
         self.base_box.addLayout(self.left_area, 2)
@@ -176,10 +178,10 @@ class FurnaceContent(QWidget):
     def initUI(self):
         self.layout = QHBoxLayout()
 
-        detail_disable = []
-        detail_able = []
-        base_disable = []
-        base_able = []
+        self.detail_disable = []
+        self.detail_able = []
+        self.base_disable = []
+        self.base_able = []
 
         #sensor area : sensor data (temp1~6, flow, press)
         self.sensor_area = SensorPlot()
@@ -241,20 +243,26 @@ class FurnaceContent(QWidget):
 
         detail_area.addLayout(buttons_in_detail_area)      
 
-        '''
-        base_able.append(material_opt)
-        base_able.append(process_opt)
-        base_able.append(amount_opt)
-        base_disable.append(set_temper_time_button)
-        base_disable.append(gas_opt)
-        base_disable.append(set_detail_button)
+        
+        self.base_able.append(material_opt)
+        self.base_able.append(process_opt)
+        self.base_able.append(amount_opt)
+        self.base_disable.append(set_temper_time_button)
+        self.base_disable.append(gas_opt)
+        self.base_disable.append(set_detail_button)
+        self.base_disable.append(end_process_button)
 
-        detail_able.append(set_base_button)
-        detail_able.append(gas_opt)
-        detail_able.append(set_temper_time_button)
-        '''
-        base_area.itemAt(3).widget().clicked.connect(lambda:set_base_button.button_click(str(material_opt.currentText()), str(process_opt.currentText()), str(amount_opt.currentText()), self.sock, base_disable, base_able))
-        detail_area.itemAt(2).itemAt(0).widget().clicked.connect(lambda:set_detail_button.button_click(str(gas_opt.currentText()), self.temp_list, self.heattime_list, self.staytime_list,self.sock, detail_disable, detail_able))
+        self.detail_able.append(set_base_button)
+        self.detail_able.append(gas_opt)
+        self.detail_able.append(set_temper_time_button)
+        
+        #test functions 
+        base_area.itemAt(3).widget().set_change_widget_list(self.base_disable, self.base_able)
+        detail_area.itemAt(2).itemAt(0).widget().set_change_widget_list(self.detail_disable, self.detail_able)
+        #until this line
+
+        base_area.itemAt(3).widget().clicked.connect(lambda:set_base_button.button_click(str(material_opt.currentText()), str(process_opt.currentText()), str(amount_opt.currentText()), self.sock))
+        detail_area.itemAt(2).itemAt(0).widget().clicked.connect(lambda:set_detail_button.button_click(str(gas_opt.currentText()), self.temp_list, self.heattime_list, self.staytime_list,self.sock))
         detail_area.itemAt(2).itemAt(1).widget().clicked.connect(lambda:button.stop_button_click(self.sock))
 
         self.right_area.addLayout(base_area,2)
@@ -264,7 +272,73 @@ class FurnaceContent(QWidget):
         self.layout.addWidget(self.sensor_area,3)
         self.layout.addLayout(self.right_area, 1)
 
+        #초기 실행시 세부설정을 불가능하게
+        for widget in self.base_disable:
+            widget.setEnabled(False)
+
         self.setLayout(self.layout)
+
+
+    def init_data(self, process_setting, sensors):
+        """
+        process_setting = [process_id, material, amount, process, count, temp_list, heattime, staytime, gas, output]
+        """
+        process_id, material, amount, process, count = process_setting[:5]
+        temp_list, heattime_list, staytime_list = process_setting[5:5+count], process_setting[15:15+count], process_setting[25:25+count]
+        gas = process_setting[-2]
+
+        number = process_id[:2]
+
+        temp_list = list(map(str, temp_list))
+        heattime_list = list(map(str, heattime_list))
+        staytime_list = list(map(str, staytime_list))
+        temp = ' '.join(temp_list)
+        heattime = ' '.join(heattime_list)
+        staytime = ' '.join(staytime_list)
+
+        #setting qcombobox text to current process's options
+        base_area = self.right_area.itemAt(0)
+        detail_area = self.right_area.itemAt(1)
+
+        material_opt = base_area.itemAt(0).widget()
+        process_opt = base_area.itemAt(1).widget()
+        amount_opt = base_area.itemAt(2).widget()
+        gas_opt = detail_area.itemAt(1).widget()
+
+        index = material_opt.findText(material, QtCore.Qt.MatchFixedString)
+        material_opt.setCurrentIndex(index)
+        index = process_opt.findText(process, QtCore.Qt.MatchFixedString)
+        process_opt.setCurrentIndex(index)
+        index = amount_opt.findText(str(amount), QtCore.Qt.MatchFixedString)
+        amount_opt.setCurrentIndex(index)
+        index = gas_opt.findText(gas, QtCore.Qt.MatchFixedString)
+        gas_opt.setCurrentIndex(index)
+        #qcombobox setting finish
+
+
+        #send to server to notice about ongoing process
+        base_msg = material + ' ' + process + ' ' + str(amount)
+        detail_msg = str(count) + ' ' + temp + ' ' + heattime + ' ' + staytime + ' ' + gas
+        init_msg = 'init ' + number + ' ' + base_msg + ' ' + detail_msg
+
+        ##서버에 위 데이터를 전송해야 함
+
+        self.sensor_area.init_data(sensors)
+
+        for widget in self.base_able:
+            widget.setEnabled(False)
+
+        for widget in self.detail_able:
+            widget.setEnabled(False)
+        
+        btn_base_modi = self.right_area.itemAt(0).itemAt(3).widget()
+        btn_detail_modi = self.right_area.itemAt(1).itemAt(2).itemAt(0).widget()
+        btn_end_process = self.right_area.itemAt(1).itemAt(2).itemAt(1).widget()
+        btn_detail_modi.setEnabled(True)
+        btn_end_process.setEnabled(True)
+        btn_base_modi.custom_toggle()
+        btn_detail_modi.custom_toggle()
+        
 
 
     def set_detail_temp_time_click(self):
@@ -285,7 +359,6 @@ class FurnaceContent(QWidget):
             
 
 
-#테스트용 subwindow, 이걸 온도/시간 상세설정 페이지로 전환하여야 함
 class SubWindow(QDialog):
     def __init__(self):
         super().__init__()
@@ -362,7 +435,7 @@ class SubWindow(QDialog):
         if self.setting_area.count() < 10:
             self.setting_area.addLayout(self.setting_row())
 
-    ##주의사항 : layout을 제거할 때는 layout내의 widget을 먼저 모두 제거해야 한다.
+    ##before delete layout, you must delete all widget in layout
     def Delbutton_click(self, widget):
         count = self.setting_area.count()
 

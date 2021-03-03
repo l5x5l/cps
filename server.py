@@ -16,9 +16,6 @@ class Server(Device):
         self.datas = data.Datas(total_furncae)
         self.q = []
         
-        #test용
-        #self.datas.for_test()
-
         self.lock = threading.Lock()
 
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -31,7 +28,7 @@ class Server(Device):
         return dbconn
 
 
-    def connect(self) -> socket.socket:
+    def connect(self):
         conn_sock, client_addr = self.sock.accept()
         print('[server] connect with ' + str(client_addr[0]))
 
@@ -50,12 +47,13 @@ class Server(Device):
             t.start()
         elif confirm[0] == 'client':
             dbconn = self.connect_db(parameter.user, parameter.password, parameter.db, parameter.charset)
-            t = threading.Thread(target=thread.server_client2, args=(conn_sock, self.datas, self.q, dbconn, self.lock))
+            t = threading.Thread(target=thread.server_client, args=(conn_sock, self.datas, self.q, dbconn, self.lock))
             t.start()
         elif confirm[0] == 'simple':
             dbconn = self.connect_db(parameter.user, parameter.password, parameter.db, parameter.charset)
             t = threading.Thread(target=thread.server_simple, args=(conn_sock, dbconn))
             t.start()
+
 
 serv = Server('165.246.44.133', 3050, parameter.total_furnace, 10)
 while True:

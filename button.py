@@ -13,6 +13,8 @@ class Base_Button(QPushButton):
         self.texts = {True: parameter.decision_str, False: parameter.modify_str}
         self.now_start_button = True
         self.setStyleSheet("background-color: green")
+        self.able_list = None
+        self.disable_list = None
 
         self.setCheckable(True)
 
@@ -22,27 +24,33 @@ class Base_Button(QPushButton):
         self.setStyleSheet("background-color: %s" % (self.colors[self.now_start_button]))
         self.setText(self.texts[self.now_start_button])
 
-    def button_click(self, material:str, process:str, amount:str, sock, disable_list, able_list):
+
+    def set_change_widget_list(self, disable_list, able_list):
+        self.able_list = able_list
+        self.disable_list = disable_list
+
+
+    def button_click(self, material:str, process:str, amount:str, sock):
         """
         disable_list : disable widgets when button is start button (so, this widgets are able when button is modify button)
         able_list : able widgets when button is start button (so, this widgets area disable when button is modify button)
         """
-        msg = ('base ' + material + ' ' + process+ ' ' + amount)
+        if self.now_start_button:
+            msg = ('base ' + material + ' ' + process+ ' ' + amount)
+        else:
+            msg = 'base_fix'
+
         msg_byte = msg.encode()
         sock.sendall(msg_byte)
 
         recv_msg = sock.recv(1024).decode()
         #print(recv_msg)
-        '''
-        if recv_msg != parameter.success_str:
-            print(recv_msg)
-            return
-        '''
+
         self.custom_toggle()
-        for elem in disable_list:
+        for elem in self.disable_list:
             elem.setEnabled(not self.now_start_button)
         
-        for elem in able_list:
+        for elem in self.able_list:
             elem.setEnabled(self.now_start_button)
 
 
@@ -54,6 +62,8 @@ class Detail_Button(QPushButton):
         self.texts = {True: parameter.decision_str, False: parameter.modify_str}
         self.now_start_button = True
         self.setStyleSheet("background-color: green")
+        self.able_list = None
+        self.disable_list = None
 
         self.setCheckable(True)
 
@@ -63,8 +73,11 @@ class Detail_Button(QPushButton):
         self.setStyleSheet("background-color: %s" % (self.colors[self.now_start_button]))
         self.setText(self.texts[self.now_start_button])
 
+    def set_change_widget_list(self, disable_list, able_list):
+        self.able_list = able_list
+        self.disable_list = disable_list
 
-    def button_click(self, gas:str, tempers:list, heattimes:list, staytimes:list, sock, disable_list, able_list):
+    def button_click(self, gas:str, tempers:list, heattimes:list, staytimes:list, sock):
         count = len(tempers)
         heattime = ' '.join(heattimes)
         staytime = ' '.join(staytimes)
@@ -78,16 +91,11 @@ class Detail_Button(QPushButton):
         recv_msg = sock.recv(1024).decode()
         #print(recv_msg)
 
-        '''
-        if recv_msg != parameter.success_str:
-            print(recv_msg)
-            return
-        '''
         self.custom_toggle()
-        for elem in disable_list:
+        for elem in self.disable_list:
             elem.setEnabled(not self.now_start_button)
         
-        for elem in able_list:
+        for elem in self.able_list:
             elem.setEnabled(self.now_start_button)
 
 def stop_button_click(sock):

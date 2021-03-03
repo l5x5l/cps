@@ -37,7 +37,6 @@ def server_furnace(sock:socket.socket, number:int, datas:Datas, q:list, dbconn, 
                     dbcur.execute(sql, val)
                     dbconn.commit()
 
-                    #send_pkt = packet_detail_set_process(100, 100, gas)
                     send_pkt = packet_detail_setting(count, elem[7:7+count], elem[7 + count : 7 + (2 * count)], elem[7 + (2 * count) : 7 + (3 * count)], gas)
                     sock.sendall(send_pkt)
 
@@ -68,7 +67,7 @@ def server_furnace(sock:socket.socket, number:int, datas:Datas, q:list, dbconn, 
                     break
                 elif elem[1] == 'start':
                     sock.sendall(b'start signal')
-                elif elem[1] == 'fix':
+                elif elem[1] == 'fix': #이 부분 수정필요
                     sock.sendall(b'fix signal')
                     temper, time = elem[2:]
                     send_pkt = packet_fix(temper, time)
@@ -138,89 +137,8 @@ def server_furnace(sock:socket.socket, number:int, datas:Datas, q:list, dbconn, 
     sock.close()
 
 
-
-def server_client(sock:socket.socket, datas:Datas, q:list, dbconn, lock):
-    dbcur = dbconn.cursor()
-    while True:
-        #server_furnace에서 state를 갱신할 때까지 기다리기 위함
-        t.sleep(2)
-
-        lock.acquire()
-        temp = datas.state_furnace()
-        lock.release()
-
-        #send나 recv가 lock 내부에 있으면 안된다.
-        sock.sendall(temp.encode())
-
-        num_opt = sock.recv(1024)
-        number, option = num_opt.decode().split()
-        #print(number + " " + option)
-
-        #지정한 열처리로와 옵션이 가능한 옵션인지를 확인 (예] 켜져있지 않은 열처리로에 start옵션을 준 경우)
-        lock.acquire()
-        check, answer = datas.check_furnace(int(number), option)
-        lock.release()
-
-        sock.sendall(answer.encode())
-        if not check:
-            continue
-
-        if option == 'end':
-            q_msg = [number, option]
-            lock.acquire()
-            q.append(q_msg)
-            lock.release()
-        elif option == 'start':
-            recv_pkt = sock.recv(1024)
-            elem, manu, amount = read_packet(recv_pkt)
-
-            sql = 'select temperature, time, gas from process where material = %s AND amount = %s AND manufacture = %s'
-            val = (elem, amount, manu)
-            dbcur.execute(sql, val)
-            result = list(dbcur.fetchall())
-            if  len(result) < 10:
-                temper, time, gas = 100, 100, 'base_gas'
-                send_pkt = packet_detail_set_process(temper, time, gas)
-                sock.sendall(send_pkt)
-
-            else:
-                #지금은 똑같은 코드지만, 이후 추가될 내용으로는
-                #데이터베이스로부터 얻은 데이터를 이용해 온도/시간/가스를 계산하도록 할 예정
-                temper, time, gas = 70, 70, 'cal_gas'
-                send_pkt = packet_detail_set_process(temper, time, gas)
-                sock.sendall(send_pkt)
-
-            recv_pkt = sock.recv(1024)
-            temper, time, gas = read_packet(recv_pkt)
-
-            #공정 시작 -> 공정식별번호 생성
-            now = datetime.datetime.now()
-            month = '{:02d}'.format(now.month)
-            day = '{:02d}'.format(now.day)
-            hour = '{:02d}'.format(now.hour)
-            minute = '{:02d}'.format(now.minute)
-            process_id = '{:02d}'.format(int(number)) + '_' + str(now.year)[-2:] + month + day + hour + minute
-
-            msg = [number, option, process_id, elem, manu, amount, temper, time, gas]
-
-            lock.acquire()
-            q.append(msg)
-            lock.release()
-
-        elif option == 'fix':
-            recv_pkt = sock.recv(1024)
-            temper, time = read_packet(recv_pkt)
-
-            msg = [str(number), option, temper, time]
-
-            lock.acquire()
-            q.append(msg)
-            lock.release()
-    sock.close()
-
-
 ##시작할 때 데이터베이스 읽어와서 실행중인 열처리로에 대해서는 order_list를 채워넣어야 한다.
-def server_client2(sock:socket.socket, datas:Datas, q:list, dbconn, lock):
+def server_client(sock:socket.socket, datas:Datas, q:list, dbconn, lock):
     dbcur = dbconn.cursor()
     order_list = []
     for i in range(parameter.total_furnace):
@@ -258,7 +176,7 @@ def server_client2(sock:socket.socket, datas:Datas, q:list, dbconn, lock):
         elif recv_msg_list[0] == 'base_fix':
             if temp is not None and len(temp) == 1:
                 prev_base = temp[-1]
-                temp = temp[:-1]
+                temp.pop()
                 sock.sendall(parameter.success_str.encode())
             else:
                 sock.sendall((parameter.error_str + '_base_fix').encode())
@@ -287,7 +205,7 @@ def server_client2(sock:socket.socket, datas:Datas, q:list, dbconn, lock):
         elif recv_msg_list[0] == 'detail_fix':
             if temp is not None and len(temp) == 2:
                 prev_detail = temp[-1]
-                temp = temp[:-1]
+                temp.pop()
                 sock.sendall(parameter.success_str.encode())
             else:
                 sock.sendall((parameter.error_str + '_detail_fix').encode())
@@ -300,6 +218,14 @@ def server_client2(sock:socket.socket, datas:Datas, q:list, dbconn, lock):
             lock.release()
 
             sock.sendall(parameter.success_str.encode())
+        elif recv_msg_list[0] == 'init':
+            number = int(recv_msg_list[1])
+            base_element = recv_msg_list[2:5]
+            detail_element = recv_msg_list[5:]
+            temp = order_list[number - 1]
+            temp.append(base_element)
+            temp.append(detail_element)
+            temp = None
         else:
             sock.sendall((parameter.error_str + '_wrong msg type' + recv_msg_list[0]).encode())
     sock.close()
@@ -442,8 +368,8 @@ def monitoring(values, times, lock:threading.Lock):
     dbconn = pymysql.connect(host=parameter.host, user=parameter.user, password=parameter.password, database=parameter.db, charset=parameter.charset)
     dbcur = dbconn.cursor()
 
-    sql = """select id from process where output is null"""
-    #sql = """select id from process"""
+    sql = parameter.sql
+    #sql = parameter.test_sql
     dbcur.execute(sql)
     processes = dbcur.fetchall()
 
@@ -474,8 +400,8 @@ def monitoring(values, times, lock:threading.Lock):
 
     while True:
         dbconn.commit()
-        sql = """select id from process where output is null"""
-        #sql = """select id from process"""
+        sql = parameter.sql
+        #sql = parameter.test_sql
         dbcur.execute(sql)
         processes = dbcur.fetchall()
 

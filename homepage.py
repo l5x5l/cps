@@ -21,8 +21,9 @@ class Select(QWidget):
     def initUI(self):
         self.layout = QHBoxLayout()
         #image area
-        self.image_area = QWidget()
-        self.image_area.setStyleSheet('background-color:#87CEFA;')
+        self.image_area = QLabel()
+        self.image_area.setPixmap(QPixmap(".\\images\\furnaces.png"))
+        
 
         #furnace area, where furnace button placed
         self.furnace_area = QGridLayout()
@@ -32,8 +33,6 @@ class Select(QWidget):
             furnace_buttons[i].resize((parameter.height-100)//4, (parameter.height-100)//4)
             furnace_buttons[i].setMaximumHeight((parameter.height-100)//4)
             furnace_buttons[i].clicked.connect(lambda checked, index=i:button.furnace_button_click(self.stk_w, self.sock, index+1))
-            #(lambda checked, index=i:button.furnace_button_click(self.stk_w, index+1))
-            #(lambda:button.furnace_button_click(self.stk_w, i+1))
             self.furnace_area.addWidget(furnace_buttons[i], i // 2, i % 2)  
 
         #except setting area, which content is plot or furnace select
@@ -100,14 +99,14 @@ def furnace_button_click(stk_w, index:int):
     stk_w.setCurrentIndex(index)
 
 
-#for test
+
 def monitoring(dbconn, furnace_pages):
     dbconn.commit()
     dbcur = dbconn.cursor()
     now_working_process = ['-', '-', '-', '-', '-', '-', '-', '-']
 
-    #sql = """select id from process where output is null"""
-    sql = """select id from process"""
+    #sql = parameter.sql
+    sql = parameter.test_sql
     dbcur.execute(sql)
     processes = dbcur.fetchall()   
 
@@ -123,20 +122,27 @@ def monitoring(dbconn, furnace_pages):
         sql = """select * from furnace""" + str(number) +  """ where id = '""" + process[0] + """' order by current desc limit 50"""
         dbcur.execute(sql)
         sensors = list(dbcur.fetchall())
+        sensors.reverse()
         for sensor in sensors:
             sensor = list(sensor)
-        furnace_pages[number - 1].sensor_area.init_data(sensors)
+        #furnace_pages[number - 1].sensor_area.init_data(sensors) #test area 영역 대신 원래 사용되던 코드
 
-    #print('testline 123')
-    #print(now_working_process)
+        
+        print('testline in homepage.py 129, to test about ongoing process')
+        ##test area
+        sql = """select * from process"""
+        dbcur.execute(sql)
+        processes = list(dbcur.fetchall()[0]) 
+        furnace_pages[number - 1].init_data(processes, sensors)
+        
 
     while True:
         dbconn.commit()
-        #sql = """select id from process where output is null"""
-        sql = """select id from process"""
+        #sql = parameter.sql
+        sql = parameter.test_sql
         dbcur.execute(sql)
         processes = dbcur.fetchall()
-        #print(processes)
+
 
         for process in processes:
             number = int(process[0][:2])

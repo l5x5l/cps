@@ -3,6 +3,7 @@ import socket
 import pickle
 import parameter
 import pymysql
+import json
 '''
 data = (('205958', '01_2102022059', 'close', 99, 98, 97, 102, 99, 100, 69, 71), 
 ('210000', '01_2102022059', 'close', 102, 101, 100, 101, 99, 99, 69, 70), 
@@ -39,16 +40,17 @@ sock.recv(1024)
 
 sock.sendall(data_list.encode())
 '''
-dbconn = pymysql.connect(host=parameter.host, user = parameter.user, password=parameter.password, database=parameter.db, charset = parameter.charset)
-dbcur = dbconn.cursor()
-sql = """select * from process"""
-dbcur.execute(sql)
-processes = list(dbcur.fetchall()[0]) 
-temp_list = [None] * 10
-heat_list = [None] * 10
-stay_list = [None] * 10
-process_id, material, amount, process, count = processes[:5]
-temp_list, heat_list, stay_list = processes[5:5+count], processes[15:15+count], processes[25:25+count]
-gas = processes[-2]
-last = processes[-1]
-print(process_id[:2])
+
+# combobox_data = {
+#     "material" : ["material1", "material2", "material3"],
+#     "process" : ["process1", "process2", "process3"],
+#     "amount" : ["350", "550", "750"],
+#     "gas" : ["gas1", "gas2", "gas3"]
+# }
+
+# with open('.\\json\\combobox.json', 'w') as json_file:
+#     json.dump(combobox_data, json_file)
+
+with open(parameter.json_path, 'r') as combo_json:
+    combo_set = json.load(combo_json)
+print(combo_set['material'])

@@ -6,6 +6,8 @@ import button
 import pymysql
 import threading
 import time
+import json
+from setting_content import SettingContent
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 from PyQt5.QtGui import QPixmap
@@ -45,6 +47,11 @@ class HomePage(QWidget):
         super().__init__()
         self.sock = sock
         self.dbconn = dbconn
+
+        #load combobox content from json file test
+        with open(parameter.json_path, 'r') as combo_json:
+            self.combo_opt = json.load(combo_json)
+
         self.initUI()
 
 
@@ -63,6 +70,7 @@ class HomePage(QWidget):
         empty = QWidget()
 
         set_button = QPushButton('setting')
+        set_button.clicked.connect(lambda:set_button_click(self.dyn_content))
         back_button = QPushButton('back')
         back_button.clicked.connect(lambda:button.back_button_click(self.dyn_content, self.sock))
 
@@ -76,9 +84,11 @@ class HomePage(QWidget):
         self.dyn_content.addWidget(self.content_area)
         self.furnace_list = []
         for i in range(parameter.total_furnace):
-            self.furnace_list.append(furnace_content.FurnaceContent(i+1, self.sock, self.dbconn))
+            self.furnace_list.append(furnace_content.FurnaceContent(i+1, self.sock, self.dbconn, self.combo_opt))
             self.dyn_content.addWidget(self.furnace_list[i])
         
+        self.dyn_content.addWidget(SettingContent(self.combo_opt))
+
         t = threading.Thread(target=monitoring, args=(self.dbconn, self.furnace_list))
         t.daemon = True
         t.start()
@@ -98,7 +108,8 @@ def back_button_click(stk_w):
 def furnace_button_click(stk_w, index:int):
     stk_w.setCurrentIndex(index)
 
-
+def set_button_click(stk_w):
+    stk_w.setCurrentIndex(parameter.total_furnace + 1)
 
 def monitoring(dbconn, furnace_pages):
     dbconn.commit()

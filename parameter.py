@@ -14,9 +14,15 @@ width = 1000
 
 decision_str = "결정"
 modify_str = "수정"
+add_str = '추가'
+del_str = '삭제'
+confirm_str = '확인'
+cancel_str = '취소'
 
 success_str = 'success'
 error_str = 'error'
 
 test_sql = """select id from process"""
 sql = """select id from process where output is null"""
+
+json_path = '.\\json\\combobox.json'

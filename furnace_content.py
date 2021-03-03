@@ -3,6 +3,7 @@ import button
 import client
 import sys
 import pymysql
+import json
 from PyQt5 import QtCore
 from PyQt5.QtWidgets import *
 from PyQt5.QtGui import QPixmap
@@ -190,13 +191,14 @@ class FurnaceContent(QWidget):
 
     layout = main layout of FuranceContent
     """
-    def __init__(self, furnace_number:int, sock, dbconn):
+    def __init__(self, furnace_number:int, sock, dbconn, combo_opt):
         super().__init__()
         self.setting_popup = SubWindow()
         self.number = furnace_number
         self.sock = sock
         self.dbconn = dbconn
-        
+        self.combobox_opt = combo_opt
+
         self.heattime_list = []
         self.staytime_list = []
         self.temp_list = []
@@ -219,19 +221,16 @@ class FurnaceContent(QWidget):
         #base element setting
         base_area = QVBoxLayout()
         material_opt = QComboBox(self)
-        material_opt.addItem('material1')
-        material_opt.addItem('material2')
-        material_opt.addItem('material3')
+        for elem in self.combobox_opt['material']:
+            material_opt.addItem(elem)
 
         process_opt = QComboBox(self)
-        process_opt.addItem('process1')
-        process_opt.addItem('process2')
-        process_opt.addItem('process3')
+        for elem in self.combobox_opt['process']:
+            process_opt.addItem(elem)
 
         amount_opt = QComboBox(self)
-        amount_opt.addItem('300')
-        amount_opt.addItem('500')
-        amount_opt.addItem('700')
+        for elem in self.combobox_opt['amount']:
+            amount_opt.addItem(elem)
 
         set_base_button = button.Base_Button(parameter.decision_str)
 
@@ -248,9 +247,8 @@ class FurnaceContent(QWidget):
         set_temper_time_button.clicked.connect(self.set_detail_temp_time_click)
 
         gas_opt = QComboBox(self)
-        gas_opt.addItem('gas1')
-        gas_opt.addItem('gas2')
-        gas_opt.addItem('gas3')
+        for elem in self.combobox_opt['gas']:
+            gas_opt.addItem(elem)
 
         set_detail_button = button.Detail_Button(parameter.decision_str)
         end_process_button = QPushButton('공정중지')
@@ -309,7 +307,6 @@ class FurnaceContent(QWidget):
         gas = process_setting[-2]
 
         number = process_id[:2]
-        print('furnace content 312 : ' + number)
 
         temp_list = list(map(str, temp_list))
         heattime_list = list(map(str, heattime_list))
@@ -423,7 +420,7 @@ class SubWindow(QDialog):
         btnOK.clicked.connect(self.OKbutton_click)
         btnCancel = QPushButton("취소")
         btnCancel.clicked.connect(self.Cancelbutton_click)
-        btnAdd = QPushButton("추가")
+        btnAdd = QPushButton(parameter.add_str)
         btnAdd.clicked.connect(self.Addbutton_click)
 
         self.setting_area.addLayout(self.setting_row())
@@ -443,11 +440,11 @@ class SubWindow(QDialog):
     def setting_row(self):
         row = QHBoxLayout()  
         number = self.setting_area.count()
-        heattime_input = QLineEdit(self)
-        staytime_input = QLineEdit(self)
-        temp_input = QLineEdit(self)
+        heattime_input = QLineEdit()    #what different between QLineEdit(self) and QLineEdit()?
+        staytime_input = QLineEdit()
+        temp_input = QLineEdit()
 
-        btnDel = QPushButton('삭제')
+        btnDel = QPushButton(parameter.del_str)
         row.addWidget(temp_input, 3)
         row.addWidget(heattime_input, 3)
         row.addWidget(staytime_input, 3)

@@ -49,10 +49,7 @@ class Server(Device):
             dbconn = self.connect_db(parameter.user, parameter.password, parameter.db, parameter.charset)
             t = threading.Thread(target=thread.server_client, args=(conn_sock, self.datas, self.q, dbconn, self.lock))
             t.start()
-        elif confirm[0] == 'simple':
-            dbconn = self.connect_db(parameter.user, parameter.password, parameter.db, parameter.charset)
-            t = threading.Thread(target=thread.server_simple, args=(conn_sock, dbconn))
-            t.start()
+
 
 
 serv = Server('165.246.44.133', 3050, parameter.total_furnace, 10)

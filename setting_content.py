@@ -1,12 +1,20 @@
 import sys
 import parameter
 import json
+import button
 from PyQt5 import QtCore
 from PyQt5.QtWidgets import *
 from PyQt5.QtGui import QPixmap
 
 class SettingContent(QWidget):
+    """
+    setting page which modify qcombobox items in furnace pages
+    """
     def __init__(self, combo_opt):
+        """
+        combo_opt is dictionary which contain qcombobox items
+        [ex] {'material' : ['material1', 'material2', 'material3']}
+        """
         QMainWindow.__init__(self)
         self.combobox_opt = combo_opt
         self.initUI()
@@ -14,8 +22,8 @@ class SettingContent(QWidget):
     def initUI(self):
         self.setStyleSheet('background-color:white')
         self.base_box = QHBoxLayout()
-        self.grid = QGridLayout()
-        self.OK_CAN = QVBoxLayout()
+        self.right_area = QGridLayout()
+        self.left_area = QVBoxLayout()
         self.popup = ConfirmWindow()
 
         self.domains = ['material', 'process', 'amount', 'gas']
@@ -24,20 +32,21 @@ class SettingContent(QWidget):
         for domain in self.domains:
             self.QLines[domain] = self.set_combobox(domain, self.combobox_opt[domain])
 
-        self.grid.addLayout(self.QLines['material'], 0, 0)
-        self.grid.addLayout(self.QLines['process'], 0, 1)
-        self.grid.addLayout(self.QLines['amount'], 1, 0)
-        self.grid.addLayout(self.QLines['gas'], 1, 1)
+        self.right_area.addLayout(self.QLines['material'], 0, 0)
+        self.right_area.addLayout(self.QLines['process'], 0, 1)
+        self.right_area.addLayout(self.QLines['amount'], 1, 0)
+        self.right_area.addLayout(self.QLines['gas'], 1, 1)
 
         btn_OK = QPushButton(parameter.confirm_str)
         btn_OK.clicked.connect(self.OKbutton_click)
         btn_CAN = QPushButton(parameter.cancel_str)
         
-        self.OK_CAN.addWidget(btn_OK)
-        self.OK_CAN.addWidget(btn_CAN)
 
-        self.base_box.addLayout(self.OK_CAN)
-        self.base_box.addLayout(self.grid)
+        self.left_area.addWidget(btn_OK)
+        self.left_area.addWidget(btn_CAN)
+
+        self.base_box.addLayout(self.left_area)
+        self.base_box.addLayout(self.right_area)
 
         self.setLayout(self.base_box)
         self.setWindowTitle('CPS ProtoType')
@@ -50,11 +59,14 @@ class SettingContent(QWidget):
 
         row.addWidget(option_input)
         row.addWidget(btnDel)
-        row.itemAt(1).widget().clicked.connect(lambda:self.Delbutton_click(row, domain))
+        row.itemAt(1).widget().clicked.connect(lambda:self.Delbutton_click(row, domain))    #row.itemAt(1).widget() = btnDel
 
         return row
 
     def Delbutton_click(self, widget, domain):
+        """
+        click event handler function of btnDel, which deletes textline row
+        """
         count = self.QLines[domain].itemAt(0).count()
 
         if count >= 2:
@@ -63,11 +75,17 @@ class SettingContent(QWidget):
             self.QLines[domain].removeItem(widget)
 
     def Addbutton_click(self, domain):
+        """
+        click event handler function of btnAdd, which add row in row_area (rows)
+        """
         count = self.QLines[domain].itemAt(0).count()
         if count <= 10:
             self.QLines[domain].itemAt(0).addLayout(self.one_row("", domain))
 
     def OKbutton_click(self):
+        """
+        click event handler function of btn_OK which adjust qcombobox items
+        """
         win = self.popup
         r = win.showModel()
 
@@ -81,6 +99,10 @@ class SettingContent(QWidget):
                 json.dump(self.combobox_opt, combo_json)
 
     def set_combobox(self, domain:str, option_list:list):
+        """
+        domain is string, one of 'materail', 'process', 'amount', 'gas'
+        option_list is qcombobox of domain
+        """
         setting_area = QVBoxLayout()
         rows = QVBoxLayout()
         btnAdd = QPushButton(parameter.add_str)
@@ -98,6 +120,9 @@ class SettingContent(QWidget):
         return setting_area
 
 class ConfirmWindow(QDialog):
+    """
+    popup window which ask adjust qcombobox item setting
+    """
     def __init__(self):
         super().__init__()
         self.initUI()

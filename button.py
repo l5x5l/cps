@@ -128,3 +128,6 @@ def furnace_button_click(stk_w, sock, number:int):
 
     recv_msg = sock.recv(1024).decode()
     #print(recv_msg)
+
+def set_button_click(stk_w):
+    stk_w.setCurrentIndex(parameter.total_furnace + 1)

@@ -274,11 +274,11 @@ class FurnaceContent(QWidget):
         self.detail_able.append(set_base_button)
         self.detail_able.append(gas_opt)
         self.detail_able.append(set_temper_time_button)
-        
-        #test functions 
+
+
         base_area.itemAt(3).widget().set_change_widget_list(self.base_disable, self.base_able)
         detail_area.itemAt(2).itemAt(0).widget().set_change_widget_list(self.detail_disable, self.detail_able)
-        #until this line
+
 
         base_area.itemAt(3).widget().clicked.connect(lambda:set_base_button.button_click(str(material_opt.currentText()), str(process_opt.currentText()), str(amount_opt.currentText()), self.sock))
         detail_area.itemAt(2).itemAt(0).widget().clicked.connect(lambda:set_detail_button.button_click(str(gas_opt.currentText()), self.temp_list, self.heattime_list, self.staytime_list,self.sock))
@@ -480,8 +480,6 @@ class SubWindow(QDialog):
 
         self.setting_graph.update(time_list, temp_list)
         
-
-
     def OKbutton_click(self):
         self.accept()
 

@@ -70,7 +70,7 @@ class HomePage(QWidget):
         empty = QWidget()
 
         set_button = QPushButton('setting')
-        set_button.clicked.connect(lambda:set_button_click(self.dyn_content))
+        set_button.clicked.connect(lambda:button.set_button_click(self.dyn_content))
         back_button = QPushButton('back')
         back_button.clicked.connect(lambda:button.back_button_click(self.dyn_content, self.sock))
 
@@ -101,15 +101,6 @@ class HomePage(QWidget):
         self.setWindowTitle('CPS ProtoType')
         self.setGeometry(0, 0, parameter.width, parameter.height)
 
-def back_button_click(stk_w):
-    stk_w.setCurrentIndex(0)
-
-
-def furnace_button_click(stk_w, index:int):
-    stk_w.setCurrentIndex(index)
-
-def set_button_click(stk_w):
-    stk_w.setCurrentIndex(parameter.total_furnace + 1)
 
 def monitoring(dbconn, furnace_pages):
     dbconn.commit()

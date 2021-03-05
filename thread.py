@@ -3,6 +3,7 @@ import socket
 import threading
 import pymysql
 import datetime
+import utils
 from packet import *
 from data import Datas
 import time as t
@@ -263,7 +264,7 @@ def monitoring(values, times, lock:threading.Lock):
 
         lock.acquire()
         values[int(number) - 1] = [one_step[2:] for one_step in sensors]
-        times[int(number) - 1] = [get_time(one_step[0]) for one_step in sensors]
+        times[int(number) - 1] = [utils.get_time(one_step[0]) for one_step in sensors]
         lock.release()
 
     while True:
@@ -299,7 +300,7 @@ def monitoring(values, times, lock:threading.Lock):
                 continue
 
             #진행중인 공정이나, 아직 센서값이 업데이트되지 않은 경우(마지막 시간과 동일한 경우)
-            if len(times[index]) != 0  and times[index][-1] == get_time(sensors[0][0]):
+            if len(times[index]) != 0  and times[index][-1] == utils.get_time(sensors[0][0]):
                 t.sleep(1)
                 continue
 
@@ -308,22 +309,14 @@ def monitoring(values, times, lock:threading.Lock):
                 values[index][:-1] = values[index][1:]
                 times[index][:-1] = times[index][1:]
                 values[index][-1] = sensors[0][2:]
-                times[index][-1] = get_time(sensors[0][0])
+                times[index][-1] = utils.get_time(sensors[0][0])
             else:
                 values[index].append(sensors[0][2:])
-                times[index].append(get_time(sensors[0][0]))
+                times[index].append(utils.get_time(sensors[0][0]))
             lock.release()
 
         t.sleep(parameter.time_interval)
 
     dbconn.close()
 
-
-#thread로 분리해서 실행할 함수는 아니지만, dash가 사용하는 thread에서만 사용하기에 이쪽에다 선언
-def get_time(current):
-    current = int(current)
-    temp = (current // 10000) * 3600
-    temp += (current % 10000) // 100 * 60
-    temp += (current % 100)
-    return temp
 

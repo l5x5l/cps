@@ -282,7 +282,7 @@ class FurnaceContent(QWidget):
 
         base_area.itemAt(3).widget().clicked.connect(lambda:set_base_button.button_click(str(material_opt.currentText()), str(process_opt.currentText()), str(amount_opt.currentText()), self.sock))
         detail_area.itemAt(2).itemAt(0).widget().clicked.connect(lambda:set_detail_button.button_click(str(gas_opt.currentText()), self.temp_list, self.heattime_list, self.staytime_list,self.sock))
-        detail_area.itemAt(2).itemAt(1).widget().clicked.connect(lambda:button.stop_button_click(self.sock))
+        detail_area.itemAt(2).itemAt(1).widget().clicked.connect(self.stop_button_click)
 
         self.right_area.addLayout(base_area,2)
         self.right_area.addLayout(detail_area,2)
@@ -380,6 +380,9 @@ class FurnaceContent(QWidget):
             self.staytime_list = staytime_list
             self.temp_list = temp_list
             
+    
+    def stop_button_click(self):
+        self.sock.sendall(b'end')
 
 
 class SubWindow(QDialog):

@@ -34,13 +34,23 @@ class Select(QWidget):
             furnace_buttons.append(QPushButton('furnace' + str(i + 1)))
             furnace_buttons[i].resize((parameter.height-100)//4, (parameter.height-100)//4)
             furnace_buttons[i].setMaximumHeight((parameter.height-100)//4)
-            furnace_buttons[i].clicked.connect(lambda checked, index=i:button.furnace_button_click(self.stk_w, self.sock, index+1))
+            furnace_buttons[i].clicked.connect(lambda checked, index=i:self.furnace_button_click(index+1))
             self.furnace_area.addWidget(furnace_buttons[i], i // 2, i % 2)  
 
         #except setting area, which content is plot or furnace select
         self.layout.addWidget(self.image_area)
         self.layout.addLayout(self.furnace_area)
         self.setLayout(self.layout)
+
+    def furnace_button_click(self, number:int):
+        self.stk_w.setCurrentIndex(number)
+        send_msg = 'num ' + str(number)
+        self.sock.sendall(send_msg.encode())
+
+        recv_msg = self.sock.recv(1024).decode()
+        #print(recv_msg)
+
+    
 
 class HomePage(QWidget):
     def __init__(self, sock, dbconn):
@@ -72,7 +82,7 @@ class HomePage(QWidget):
         set_button = QPushButton('setting')
         set_button.clicked.connect(lambda:button.set_button_click(self.dyn_content))
         back_button = QPushButton('back')
-        back_button.clicked.connect(lambda:button.back_button_click(self.dyn_content, self.sock))
+        back_button.clicked.connect(self.back_button_click)
 
         self.setting_area.addWidget(icon, 1)
         self.setting_area.addWidget(empty, 7)
@@ -100,6 +110,16 @@ class HomePage(QWidget):
         self.setLayout(self.layout)
         self.setWindowTitle('CPS ProtoType')
         self.setGeometry(0, 0, parameter.width, parameter.height)
+    
+    def back_button_click(self):
+        self.dyn_content.setCurrentIndex(0)
+        self.sock.sendall('esc'.encode())
+
+        recv_msg = self.sock.recv(1024).decode()
+        #print(recv_msg)
+
+    def set_button_click(self):
+        self.dyn_content.setCurrentIndex(parameter.total_furnace + 1)
 
 
 def monitoring(dbconn, furnace_pages):

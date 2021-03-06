@@ -12,12 +12,16 @@ maximum_client = 10
 height = 500
 width = 1000
 
+#button에 넣을 문자열들
 decision_str = "결정"
 modify_str = "수정"
 add_str = '추가'
 del_str = '삭제'
 confirm_str = '확인'
 cancel_str = '취소'
+end_process_str = '공정중지'
+set_temper_time_str = '시간/온도 세부설정'
+show_temper_time_str = '세부설정 미리보기'
 
 success_str = 'success'
 error_str = 'error'

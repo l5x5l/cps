@@ -80,7 +80,7 @@ class HomePage(QWidget):
         empty = QWidget()
 
         set_button = QPushButton('setting')
-        set_button.clicked.connect(lambda:button.set_button_click(self.dyn_content))
+        set_button.clicked.connect(self.set_button_click)
         back_button = QPushButton('back')
         back_button.clicked.connect(self.back_button_click)
 
@@ -127,11 +127,12 @@ def monitoring(dbconn, furnace_pages):
     dbcur = dbconn.cursor()
     now_working_process = ['-', '-', '-', '-', '-', '-', '-', '-']
 
-    #sql = parameter.sql
-    sql = parameter.test_sql
+    sql = parameter.sql
+    #sql = parameter.test_sql
     dbcur.execute(sql)
     processes = dbcur.fetchall()   
 
+    #프로그램을 실행하기 전 이미 작동중인 공정이 존재하는지 확인하는 용도, 이미 작동중인 공정이 존재할 시 해당 공정의 최근 센서값 최대 50개를 가져옴
     for process in processes:
         number = int(process[0][:2])
 
@@ -140,6 +141,11 @@ def monitoring(dbconn, furnace_pages):
         else:
             if int(now_working_process[number - 1].split('_')[-1]) <= int(process[0].split('_')[-1]):
                 now_working_process[number - 1] = process[0]
+            else:
+                sql = "UPDATE process SET output = %s WHERE id = %s"
+                val = (int(2), process[0])
+                dbcur.execute(sql, val)
+                dbconn.commit()
         
         sql = """select * from furnace""" + str(number) +  """ where id = '""" + process[0] + """' order by current desc limit 50"""
         dbcur.execute(sql)
@@ -153,25 +159,24 @@ def monitoring(dbconn, furnace_pages):
         sql = """select * from process where id = '""" + process[0] + """'"""
         dbcur.execute(sql)
         processes = list(dbcur.fetchall()[0]) 
-        furnace_pages[number - 1].init_data(processes, sensors)
+        furnace_pages[number - 1].apply_exist_process(processes, sensors)
         
-
+    # 프로그램 실행 후, 진행중인 공정에 대한 센서값 업데이트
     while True:
         dbconn.commit()
-        #sql = parameter.sql
-        sql = parameter.test_sql
+        sql = parameter.sql
+        #sql = parameter.test_sql
         dbcur.execute(sql)
         processes = dbcur.fetchall()
 
-
         for process in processes:
             number = int(process[0][:2])
-            if now_working_process[number - 1] == '-':
-                now_working_process[number - 1] = process[0] 
 
-            if now_working_process[number - 1] not in processes:
-                now_working_process[number - 1] = '-'
+            if now_working_process[number - 1] != process[0]:    #프로그램 실행 이후 공정이 종료되고 새 공정이 시작된 경우
+                furnace_pages[number - 1].sensor_area.clear()
+                now_working_process[number - 1] = process[0] 
                 #초기화 함수 필요할듯   
+
 
             sql = """select * from furnace""" + str(number) +  """ where id = '""" + process[0] + """' order by current desc limit 1"""
             dbcur.execute(sql)

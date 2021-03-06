@@ -76,9 +76,9 @@ class SensorPlot(QWidget):
         self.line = ["", "", "", "", "", "", "", ""]    #None 대신 ""을 사용함
         
         for i in range(len(self.list)):              
-            self.x = np.arange(50)
-            self.y = np.ones(50, dtype=np.float)*np.nan
-            self.line[i], = self.list[i].plot(self.x, self.y, animated=False)
+            x = np.arange(50)
+            y = np.ones(50, dtype=np.float)*np.nan
+            self.line[i], = self.list[i].plot(x, y, animated=False)
     
     def init_data(self, datas):
         """
@@ -124,7 +124,7 @@ class SensorPlot(QWidget):
         """
         update total graph of one furnace
 
-        datas : sensor data -> [temp1~6, flow, press, touch]
+        datas : sensor data -> [current, id, touch, temp1~6, flow, press]
         type of datas elemnt without touch : int
         """
 
@@ -139,6 +139,15 @@ class SensorPlot(QWidget):
         self.canvas.draw()
         self.canvas.flush_events()
 
+    def clear(self):
+        """
+        clear graph of furance
+        """
+        y = np.ones(50, dtype=np.float)*np.nan
+        for index, _ in enumerate(self.line):
+            self.line[index].set_ydata(y)
+        self.canvas.draw()
+        self.canvas.flush_events()
 
 class SettingPlotCanvas(FigureCanvas):
     """
@@ -243,7 +252,7 @@ class FurnaceContent(QWidget):
         detail_area = QVBoxLayout()
         buttons_in_detail_area = QHBoxLayout()
 
-        set_temper_time_button = QPushButton('시간/온도 상세설정')
+        set_temper_time_button = QPushButton(parameter.set_temper_time_str)
         set_temper_time_button.clicked.connect(self.set_detail_temp_time_click)
 
         gas_opt = QComboBox(self)
@@ -251,7 +260,7 @@ class FurnaceContent(QWidget):
             gas_opt.addItem(elem)
 
         set_detail_button = button.Detail_Button(parameter.decision_str)
-        end_process_button = QPushButton('공정중지')
+        end_process_button = QPushButton(parameter.end_process_str)
         end_process_button.setStyleSheet("background-color: red")
 
         detail_area.addWidget(set_temper_time_button)
@@ -269,19 +278,22 @@ class FurnaceContent(QWidget):
         self.base_disable.append(set_temper_time_button)
         self.base_disable.append(gas_opt)
         self.base_disable.append(set_detail_button)
-        self.base_disable.append(end_process_button)
+        #self.base_disable.append(end_process_button)
 
         self.detail_able.append(set_base_button)
         self.detail_able.append(gas_opt)
         self.detail_able.append(set_temper_time_button)
+        self.detail_disable.append(end_process_button)
 
 
         base_area.itemAt(3).widget().set_change_widget_list(self.base_disable, self.base_able)
         detail_area.itemAt(2).itemAt(0).widget().set_change_widget_list(self.detail_disable, self.detail_able)
 
-
+        #add click event to set_base_button
         base_area.itemAt(3).widget().clicked.connect(lambda:set_base_button.button_click(str(material_opt.currentText()), str(process_opt.currentText()), str(amount_opt.currentText()), self.sock))
+        #add click event to set_detail_button
         detail_area.itemAt(2).itemAt(0).widget().clicked.connect(lambda:set_detail_button.button_click(str(gas_opt.currentText()), self.temp_list, self.heattime_list, self.staytime_list,self.sock))
+        #add click event to end_process_button
         detail_area.itemAt(2).itemAt(1).widget().clicked.connect(self.stop_button_click)
 
         self.right_area.addLayout(base_area,2)
@@ -294,11 +306,13 @@ class FurnaceContent(QWidget):
         #초기 실행시 세부설정을 불가능하게
         for widget in self.base_disable:
             widget.setEnabled(False)
+        for widget in self.detail_disable:
+            widget.setEnabled(False)
 
         self.setLayout(self.layout)
 
 
-    def init_data(self, process_setting, sensors):
+    def apply_exist_process(self, process_setting, sensors):
         """
         process_setting's format =  [process_id, material, amount, process, count, temp_list, heattime, staytime, gas, output]
         """
@@ -332,7 +346,6 @@ class FurnaceContent(QWidget):
         amount_opt.setCurrentIndex(index)
         index = gas_opt.findText(gas, QtCore.Qt.MatchFixedString)
         gas_opt.setCurrentIndex(index)
-        #qcombobox setting finish
 
 
         #send to server to notice about ongoing process
@@ -380,8 +393,21 @@ class FurnaceContent(QWidget):
             self.staytime_list = staytime_list
             self.temp_list = temp_list
             
-    
+    def clear_UI(self):
+        for elem in self.base_disable:
+            elem.setEnabled(False) 
+        for elem in self.detail_disable:
+            elem.setEnabled(False)
+        for elem in self.base_able:
+            elem.setEnabled(True)        
+        
+        self.right_area.itemAt(0).itemAt(3).widget().setEnabled(True)
+        self.right_area.itemAt(0).itemAt(3).widget().set_state_start()
+        self.right_area.itemAt(1).itemAt(2).itemAt(0).widget().set_state_start()
+
     def stop_button_click(self):
+        self.clear_UI()
+
         self.sock.sendall(b'end')
 
 
@@ -404,7 +430,7 @@ class SubWindow(QDialog):
         #time and temper graph area
         self.graph_area = QVBoxLayout()
         self.setting_graph = SettingPlot()
-        btn_graph_renew = QPushButton("설정 미리보기")
+        btn_graph_renew = QPushButton(parameter.show_temper_time_str)
         btn_graph_renew.clicked.connect(self.Renewbutton_click)
         self.graph_area.addWidget(self.setting_graph, 9)
         self.graph_area.addWidget(btn_graph_renew, 1)
@@ -419,9 +445,9 @@ class SubWindow(QDialog):
         self.button_area = QVBoxLayout()
 
 
-        btnOK = QPushButton("확인")
+        btnOK = QPushButton(parameter.confirm_str)
         btnOK.clicked.connect(self.OKbutton_click)
-        btnCancel = QPushButton("취소")
+        btnCancel = QPushButton(parameter.cancel_str)
         btnCancel.clicked.connect(self.Cancelbutton_click)
         btnAdd = QPushButton(parameter.add_str)
         btnAdd.clicked.connect(self.Addbutton_click)

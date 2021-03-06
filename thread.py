@@ -61,9 +61,9 @@ def server_furnace(sock:socket.socket, number:int, datas:Datas, q:list, dbconn, 
             if elem[0] == str(number):
                 print('[server] ' + elem[0] + " " + elem[1])
                 if elem[1] == 'end':
-                    print('recv')
                     end_flag = True
                     sock.sendall(b'end signal')
+                    no_signal = False
                     break
                 elif elem[1] == 'start':
                     sock.sendall(b'start signal')

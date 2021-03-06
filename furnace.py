@@ -5,19 +5,21 @@ import time
 from packet import *
 from device import Device
 import sys
+import datetime
 
 class Furnace(Device):
     def __init__(self, host, port, number):
         """
         number : furnace number
-        index : used for sensor's temperature
+        index : used for setting sensor's temperature
         tempers : temperature list
         heattimes : 승온 시간들
         staytimes : 현 온도를 유지하는 시간들
         mean : 가상의 센서값을 만들 때 사용 (평균)
         sd : 가상의 센서값을 만들 때 사용 (표준편차)
         inclication : 가상의 센서값을 만들 때 사용, 승온시 온도의 상승폭을 나타냄
-        process_time : 공정의 총 시간을 나타내며, 현재는 실시간이 아니라 반복 횟수로 사용됨
+        start_time : 공정의 시작 시간
+        process_time : 공정의 총 시간
         current_time : 공정의 현 시간
         gas : 공정에 사용되는 가스의 종류
         """
@@ -35,7 +37,7 @@ class Furnace(Device):
         self.mean = 0
         self.sb = None
         self.inclination = None
-        #여기서 process_time은 실시간이 아니라 반복횟수로 여긴다. (추후 시간으로 수정 예정)
+        self.start_time = None
         self.process_time = None
         self.current_time = None
         self.gas = None
@@ -52,21 +54,25 @@ class Furnace(Device):
         if self.index >= len(self.tempers):
             return
         else:
-            if self.current_time < self.heattimes[self.index]:
+            if self.current_time < self.heattimes[self.index]:  #승온
                 if self.inclination is None:
                     self.inclination = self.tempers[0] / self.heattimes[0]
-                self.mean += int(self.inclination)
+                if self.index == 0: #first heattime
+                    self.mean = int(self.inclination * self.current_time)
+                    pass
+                else:   
+                    self.mean = self.tempers[self.index - 1] + int(self.inclination * (self.current_time - self.staytimes[self.index - 1]))
 
-            elif self.current_time < self.staytimes[self.index]:
+            elif self.current_time < self.staytimes[self.index]:    #유지
                 #self.mean = self.tempers[self.index]
                 pass
-            else:
+            else:      #승온
                 self.index += 1
                 if self.index >= len(self.tempers):
                     return
                 else:
                     self.inclination = (self.tempers[self.index] - self.tempers[self.index - 1]) / (self.heattimes[self.index] - self.staytimes[self.index - 1])
-                    self.mean += int(self.inclination)
+                    self.mean = self.tempers[self.index - 1] + int(self.inclination * (self.current_time - self.staytimes[self.index - 1]))
             
 
 
@@ -104,7 +110,7 @@ class Furnace(Device):
         print('[furnace] ' + signal)
         if signal == 'end signal':
             self.close()
-        elif signal == 'fix signal':
+        elif signal == 'fix signal':    #need to fix
             self.send_msg('fix confirm', self.sock)
             self.modify()
 
@@ -115,10 +121,10 @@ class Furnace(Device):
 
 
         if isLast == 'True':
-            print('[furnace] test line')
             self.close()
 
-        self.current_time += 1 #임의로 설정
+        self.current_time = int((datetime.datetime.now() - self.start_time).total_seconds())
+
         time.sleep(parameter.time_interval)
 
 
@@ -138,7 +144,7 @@ class Furnace(Device):
         self.process_setting(count, temp, heattime, staytime, gas)
 
 
-    def modify(self):
+    def modify(self):   #need to fix
         recv_pkt = self.recv_msg(self.sock)
         temp, time = read_packet(recv_pkt)
         self.modify_setting(temp, time)
@@ -160,6 +166,7 @@ class Furnace(Device):
             
         self.process_time = totaltime
         self.current_time = 0
+        self.start_time = datetime.datetime.now()
         self.sb = 2
         self.gas = gas
 
@@ -174,3 +181,5 @@ furnace.connect()
 furnace.preprocessing()
 while True:
     furnace.furnace_main()
+
+furnace.close()

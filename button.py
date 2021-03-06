@@ -19,6 +19,17 @@ class Base_Button(QPushButton):
 
         self.setCheckable(True)
 
+    def set_state_start(self):
+        self.now_start_button = True
+        self.setStyleSheet("background-color: %s" % (self.colors[self.now_start_button]))
+        self.setText(self.texts[self.now_start_button])
+        self.base_opt = 'base'
+
+    def set_state_fix(self):
+        self.now_start_button = False
+        self.setStyleSheet("background-color: %s" % (self.colors[self.now_start_button]))
+        self.setText(self.texts[self.now_start_button])
+        self.base_opt = 'base_fix'
 
     def custom_toggle(self):
         self.now_start_button = not self.now_start_button
@@ -73,6 +84,17 @@ class Detail_Button(QPushButton):
 
         self.setCheckable(True)
 
+    def set_state_start(self):
+        self.now_start_button = True
+        self.setStyleSheet("background-color: %s" % (self.colors[self.now_start_button]))
+        self.setText(self.texts[self.now_start_button])
+        self.base_opt = 'detail'
+
+    def set_state_fix(self):
+        self.now_start_button = False
+        self.setStyleSheet("background-color: %s" % (self.colors[self.now_start_button]))
+        self.setText(self.texts[self.now_start_button])
+        self.base_opt = 'detail_fix'
 
     def custom_toggle(self):
         self.now_start_button = not self.now_start_button
@@ -111,6 +133,3 @@ class Detail_Button(QPushButton):
         for elem in self.able_list:
             elem.setEnabled(self.now_start_button)
 
-
-def set_button_click(stk_w):
-    stk_w.setCurrentIndex(parameter.total_furnace + 1)

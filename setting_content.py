@@ -63,6 +63,27 @@ class SettingContent(QWidget):
 
         return row
 
+    def set_combobox(self, domain:str, option_list:list):
+        """
+        domain is string, one of 'materail', 'process', 'amount', 'gas'
+        option_list is qcombobox of domain
+        """
+        setting_area = QVBoxLayout()
+        rows = QVBoxLayout()
+        btnAdd = QPushButton(parameter.add_str)
+        btnAdd.clicked.connect(lambda:self.Addbutton_click(domain))
+
+
+        for elem in option_list:
+            row = self.one_row(elem, domain)
+            row.itemAt(0).widget().setEnabled(False)
+            rows.addLayout(row)
+
+
+        setting_area.addLayout(rows)
+        setting_area.addWidget(btnAdd)
+        return setting_area
+        
     def Delbutton_click(self, widget, domain):
         """
         click event handler function of btnDel, which deletes textline row
@@ -98,26 +119,6 @@ class SettingContent(QWidget):
             with open(parameter.json_path, 'w') as combo_json:
                 json.dump(self.combobox_opt, combo_json)
 
-    def set_combobox(self, domain:str, option_list:list):
-        """
-        domain is string, one of 'materail', 'process', 'amount', 'gas'
-        option_list is qcombobox of domain
-        """
-        setting_area = QVBoxLayout()
-        rows = QVBoxLayout()
-        btnAdd = QPushButton(parameter.add_str)
-        btnAdd.clicked.connect(lambda:self.Addbutton_click(domain))
-
-
-        for elem in option_list:
-            row = self.one_row(elem, domain)
-            row.itemAt(0).widget().setEnabled(False)
-            rows.addLayout(row)
-
-
-        setting_area.addLayout(rows)
-        setting_area.addWidget(btnAdd)
-        return setting_area
 
 class ConfirmWindow(QDialog):
     """

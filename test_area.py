@@ -51,6 +51,6 @@ sock.sendall(data_list.encode())
 # with open('.\\json\\combobox.json', 'w') as json_file:
 #     json.dump(combobox_data, json_file)
 
-with open(parameter.json_path, 'r') as combo_json:
-    combo_set = json.load(combo_json)
-print(combo_set['material'])
+test_tuple = ((5,), (2,))
+if any(2 not in i for i in test_tuple):
+    print('test')

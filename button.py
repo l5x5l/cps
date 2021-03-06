@@ -41,6 +41,7 @@ class Base_Button(QPushButton):
         else:
             self.base_opt = 'base_fix'
 
+
     def set_change_widget_list(self, disable_list, able_list):
         self.able_list = able_list
         self.disable_list = disable_list

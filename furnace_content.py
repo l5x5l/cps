@@ -129,7 +129,6 @@ class SensorPlot(QWidget):
         """
 
         for index, _ in enumerate(self.line):
-            #가장 앞에 있는게 touch 인듯
             y = int(datas[index + 3])
             #y = random.randint(0,1024)
             old_y = self.line[index].get_ydata()
@@ -278,7 +277,6 @@ class FurnaceContent(QWidget):
         self.base_disable.append(set_temper_time_button)
         self.base_disable.append(gas_opt)
         self.base_disable.append(set_detail_button)
-        #self.base_disable.append(end_process_button)
 
         self.detail_able.append(set_base_button)
         self.detail_able.append(gas_opt)
@@ -347,6 +345,7 @@ class FurnaceContent(QWidget):
         index = gas_opt.findText(gas, QtCore.Qt.MatchFixedString)
         gas_opt.setCurrentIndex(index)
 
+        self.setting_popup.apply_exist_process(temp_list, heattime_list, staytime_list)
 
         #send to server to notice about ongoing process
         base_msg = material + ' ' + process + ' ' + str(amount)
@@ -375,7 +374,6 @@ class FurnaceContent(QWidget):
         btn_base_modi.custom_toggle()
         btn_detail_modi.custom_toggle()
         
-
 
     def set_detail_temp_time_click(self):
         win = self.setting_popup
@@ -466,12 +464,13 @@ class SubWindow(QDialog):
 
         self.setLayout(self.layout)
 
-    def setting_row(self):
+
+    def setting_row(self, temp = '0', heat = '0', stay = '0'):
         row = QHBoxLayout()  
         number = self.setting_area.count()
-        heattime_input = QLineEdit()    #what different between QLineEdit(self) and QLineEdit()?
-        staytime_input = QLineEdit()
-        temp_input = QLineEdit()
+        heattime_input = QLineEdit(heat)    #what different between QLineEdit(self) and QLineEdit()?
+        staytime_input = QLineEdit(stay)
+        temp_input = QLineEdit(temp)
 
         btnDel = QPushButton(parameter.del_str)
         row.addWidget(temp_input, 3)
@@ -481,6 +480,20 @@ class SubWindow(QDialog):
         row.itemAt(3).widget().clicked.connect(lambda:self.Delbutton_click(row))
 
         return row
+
+
+    def apply_exist_process(self, tempers, heattimes, staytimes):
+        list_len = len(tempers)
+        widget_count = self.setting_area.count()
+
+        for i in range(list_len):
+            if i < widget_count:
+                self.setting_area.itemAt(i).itemAt(0).widget().setText(tempers[i])
+                self.setting_area.itemAt(i).itemAt(1).widget().setText(heattimes[i])
+                self.setting_area.itemAt(i).itemAt(2).widget().setText(staytimes[i])
+            else:
+                self.setting_area.addLayout(self.setting_row(tempers[i], heattimes[i], staytimes[i]))
+        self.Renewbutton_click()
 
 
     def Addbutton_click(self):

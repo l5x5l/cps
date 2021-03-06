@@ -151,7 +151,6 @@ class Furnace(Device):
 
 
     def process_setting(self, count, temp, heattime, staytime, gas):
-
         totaltime = 0
         self.tempers = temp
         self.heattimes.append(heattime[0])

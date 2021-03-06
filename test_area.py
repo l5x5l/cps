@@ -51,6 +51,6 @@ sock.sendall(data_list.encode())
 # with open('.\\json\\combobox.json', 'w') as json_file:
 #     json.dump(combobox_data, json_file)
 
-test_tuple = ((5,), (2,))
-if any(2 not in i for i in test_tuple):
-    print('test')
+test = ['-'] * 8
+test[0] = 'test'
+print(test)

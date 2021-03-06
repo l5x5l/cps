@@ -99,7 +99,11 @@ class HomePage(QWidget):
         
         self.dyn_content.addWidget(SettingContent(self.combo_opt))
 
-        t = threading.Thread(target=monitoring, args=(self.dbconn, self.furnace_list))
+        #test area
+        working_process = apply_exist_process(self.dbconn, self.furnace_list)
+
+        #add working_process to monitoring
+        t = threading.Thread(target=monitoring, args=(self.dbconn, self.furnace_list, working_process))
         t.daemon = True
         t.start()
 
@@ -121,64 +125,72 @@ class HomePage(QWidget):
     def set_button_click(self):
         self.dyn_content.setCurrentIndex(parameter.total_furnace + 1)
 
-
-def monitoring(dbconn, furnace_pages):
-    dbconn.commit()
-    dbcur = dbconn.cursor()
-    now_working_process = ['-', '-', '-', '-', '-', '-', '-', '-']
-
+#test function
+def get_working_process(dbcur):
+    """
+    dbcur(sql connector cursor)
+    return : working process id list, indicates furance's wokring process
+    ex ['01_00000000', '-', '-', '-', '05_00000000', '-', '-', '-']
+    """
     sql = parameter.sql
     #sql = parameter.test_sql
     dbcur.execute(sql)
     processes = dbcur.fetchall()   
-
-    #프로그램을 실행하기 전 이미 작동중인 공정이 존재하는지 확인하는 용도, 이미 작동중인 공정이 존재할 시 해당 공정의 최근 센서값 최대 50개를 가져옴
+    working_process = ['-'] * parameter.total_furnace
     for process in processes:
         number = int(process[0][:2])
+        working_process[number - 1] = process[0]
 
-        if now_working_process[number - 1] == '-':
-            now_working_process[number - 1] = process[0]
-        else:
-            if int(now_working_process[number - 1].split('_')[-1]) <= int(process[0].split('_')[-1]):
-                now_working_process[number - 1] = process[0]
-            else:
-                sql = "UPDATE process SET output = %s WHERE id = %s"
-                val = (int(2), process[0])
-                dbcur.execute(sql, val)
-                dbconn.commit()
-        
-        sql = """select * from furnace""" + str(number) +  """ where id = '""" + process[0] + """' order by current desc limit 50"""
+    return working_process
+
+#test function
+def apply_exist_process(dbconn, furnace_pages):
+    """
+    dbconn(database connector)
+    furnace_pagse(list) : list of furnace_content instance
+    """
+    dbcur = dbconn.cursor()
+    processes = get_working_process(dbcur)
+
+    for i in range(parameter.total_furnace):
+        if processes[i] == '-':
+            continue
+
+        sql = """select * from furnace""" + str(i + 1) +  """ where id = '""" + processes[i] + """' order by current desc limit 50"""
         dbcur.execute(sql)
         sensors = list(dbcur.fetchall())
         sensors.reverse()
         for sensor in sensors:
             sensor = list(sensor)
-        #furnace_pages[number - 1].sensor_area.init_data(sensors) #test area 영역 대신 원래 사용되던 코드
 
-        
-        sql = """select * from process where id = '""" + process[0] + """'"""
+        sql = """select * from process where id = '""" + processes[i] + """'"""
         dbcur.execute(sql)
-        processes = list(dbcur.fetchall()[0]) 
-        furnace_pages[number - 1].apply_exist_process(processes, sensors)
-        
+        process_setting = list(dbcur.fetchall()[0]) 
+        furnace_pages[i].apply_exist_process(process_setting, sensors)   
+    dbcur.close()
+    return processes
+
+def monitoring(dbconn, furnace_pages, working_process = []):
+    """
+    get realtime sensor data from database
+    dbconn(database connector)
+    furnace_pages(list) : list of furnace_content instance
+    working_process(list) : list of exist working process's id
+    ex ['01_00000000', '-', '-', '-', '05_00000000', '-', '-', '-']
+    """
+    dbcur = dbconn.cursor()
+    now_working_process = working_process
+
     # 프로그램 실행 후, 진행중인 공정에 대한 센서값 업데이트
     while True:
         dbconn.commit()
-        sql = parameter.sql
-        #sql = parameter.test_sql
-        dbcur.execute(sql)
-        processes = dbcur.fetchall()
-
-        for process in processes:
-            number = int(process[0][:2])
-
-            if now_working_process[number - 1] != process[0]:    #프로그램 실행 이후 공정이 종료되고 새 공정이 시작된 경우
-                furnace_pages[number - 1].sensor_area.clear()
-                now_working_process[number - 1] = process[0] 
-                #초기화 함수 필요할듯   
-
-
-            sql = """select * from furnace""" + str(number) +  """ where id = '""" + process[0] + """' order by current desc limit 1"""
+        processes = get_working_process(dbcur)
+        for i in range(len(processes)):
+            if now_working_process[i] != processes[i]:
+                furnace_pages[i].sensor_area.clear()
+                furnace_pages[i].clear_UI()
+                now_working_process[i] = processes[i]
+            sql = """select * from furnace""" + str(i+1) +  """ where id = '""" + now_working_process[i] + """' order by current desc limit 1"""
             dbcur.execute(sql)
             sensors = list(dbcur.fetchall())
 
@@ -186,11 +198,13 @@ def monitoring(dbconn, furnace_pages):
                 continue
             
             sensors = list(sensors[0])
-            furnace_pages[number - 1].sensor_area.update(sensors)
+            furnace_pages[i].sensor_area.update(sensors)
         time.sleep(parameter.time_interval)
+
     dbcur.close()
 
 
+#for test UI
 if __name__ == "__main__":
     #C = client.Client(parameter.host, parameter.port)
     #C.connect()

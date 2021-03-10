@@ -18,72 +18,81 @@ def server_furnace(sock:socket.socket, number:int, datas:Datas, q:list, dbconn, 
     time_interval = parameter.time_interval
 
     #wait until recv process operation order
-    print(datas.datas[index]['state'])
     while datas.datas[index]['state'] == 'on':
 
         for elem in q:
-            if elem[0] == str(number):
-                if elem[1] == 'start':
-                    lock.acquire()
-                    temp_list, heattime_list, staytime_list = [None] * 10, [None] * 10, [None] * 10
-                    process_id, mete, manu, inp = elem[2:6]
-                    count = int(elem[6])
-                    temp_list[:count] = list(map(int, elem[7 : 7 + count]))
-                    heattime_list[:count] = list(map(int, elem[7 + count : 7 + (2 * count)]))
-                    staytime_list[:count] = list(map(int, elem[7 + (2 * count) : 7 + (3 * count)]))
-                    gas = elem[-1]
-                    sql = "INSERT INTO process(id, material, amount, manufacture, count, temper1, temper2, temper3, temper4, temper5, temper6, temper7, temper8, temper9, temper10, heattime1, heattime2, heattime3, heattime4, heattime5, heattime6, heattime7, heattime8, heattime9, heattime10, staytime1, staytime2, staytime3, staytime4, staytime5, staytime6, staytime7, staytime8, staytime9, staytime10,gas) VALUES(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"
-                    val = (process_id, mete, int(inp), manu, count, temp_list[0], temp_list[1], temp_list[2], temp_list[3], temp_list[4], temp_list[5], temp_list[6], temp_list[7], temp_list[8], temp_list[9], heattime_list[0], heattime_list[1], heattime_list[2], heattime_list[3], heattime_list[4], heattime_list[5], heattime_list[6], heattime_list[7], heattime_list[8], heattime_list[9], staytime_list[0], staytime_list[1], staytime_list[2], staytime_list[3], staytime_list[4], staytime_list[5], staytime_list[6], staytime_list[7], staytime_list[8], staytime_list[9], gas)
-                    dbcur.execute(sql, val)
-                    dbconn.commit()
+            #if elem[0] == str(number):
+            if elem[1] == 'start':
+                #lock.acquire()
+                temp_list, heattime_list, staytime_list = [None] * 10, [None] * 10, [None] * 10
+                process_id, mete, manu, inp = elem[2:6]
+                count = int(elem[6])
+                temp_list[:count] = list(map(int, elem[7 : 7 + count]))
+                heattime_list[:count] = list(map(int, elem[7 + count : 7 + (2 * count)]))
+                staytime_list[:count] = list(map(int, elem[7 + (2 * count) : 7 + (3 * count)]))
+                gas = elem[-1]
+                sql = "INSERT INTO process(id, material, amount, manufacture, count, temper1, temper2, temper3, temper4, temper5, temper6, temper7, temper8, temper9, temper10, heattime1, heattime2, heattime3, heattime4, heattime5, heattime6, heattime7, heattime8, heattime9, heattime10, staytime1, staytime2, staytime3, staytime4, staytime5, staytime6, staytime7, staytime8, staytime9, staytime10,gas) VALUES(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"
+                val = (process_id, mete, int(inp), manu, count, temp_list[0], temp_list[1], temp_list[2], temp_list[3], temp_list[4], temp_list[5], temp_list[6], temp_list[7], temp_list[8], temp_list[9], heattime_list[0], heattime_list[1], heattime_list[2], heattime_list[3], heattime_list[4], heattime_list[5], heattime_list[6], heattime_list[7], heattime_list[8], heattime_list[9], staytime_list[0], staytime_list[1], staytime_list[2], staytime_list[3], staytime_list[4], staytime_list[5], staytime_list[6], staytime_list[7], staytime_list[8], staytime_list[9], gas)
+                dbcur.execute(sql, val)
+                dbconn.commit()
 
-                    send_pkt = packet_detail_setting(count, elem[7:7+count], elem[7 + count : 7 + (2 * count)], elem[7 + (2 * count) : 7 + (3 * count)], gas)
-                    sock.sendall(send_pkt)
+                send_pkt = packet_detail_setting(count, elem[7:7+count], elem[7 + count : 7 + (2 * count)], elem[7 + (2 * count) : 7 + (3 * count)], gas)
+                sock.sendall(send_pkt)
 
-                    datas.working_furnace_data(number, process_id)
+                #lock.acquire()
+                datas.working_furnace_data(number, process_id) 
 
-                    q.remove(elem)
-                    lock.release()
-                    break
-                else:
-                    lock.acquire()
-                    print('[server] ignore msg in q : ' + str(elem[0]) + " : " + elem[1])
-                    q.remove(elem)
-                    lock.release()
+                q.remove(elem)
+                #lock.release()
+                break
+            else:
+                #lock.acquire()
+                print('[server] ignore msg in q : ' + str(elem[0]) + " : " + elem[1])
+                q.remove(elem)
+                #lock.release()
         t.sleep(time_interval)
 
 
     #after furnace starts process
     while True:
         no_signal = True
-        lock.acquire()
+        #lock.acquire()
         for elem in q:
-            if elem[0] == str(number):
-                print('[server] ' + elem[0] + " " + elem[1])
-                if elem[1] == 'end':
-                    end_flag = True
-                    sock.sendall(b'end signal')
-                    no_signal = False
-                    break
-                elif elem[1] == 'start':
-                    sock.sendall(b'start signal')
-                elif elem[1] == 'fix': #이 부분 수정필요
-                    sock.sendall(b'fix signal')
-                    temper, time = elem[2:]
-                    send_pkt = packet_fix(temper, time)
-                    sock.recv(1024)
-                    print('[server] test line : 68')
-                    sock.sendall(send_pkt)
-                    #데이터베이스에 공정정보를 수정한 값으로 갱신
-                    sql = "UPDATE process SET temperature = %s, time = %s WHERE id = %s"
-                    val = (temper, time, process_id)
-                    print('[server] test line : 73, 74')
-                    dbcur.execute(sql, val)
-                    dbconn.commit()
-                    
+            #if elem[0] == str(number):
+            if elem[1] == 'end':
+                end_flag = True
+                sock.sendall(b'end signal')
                 no_signal = False
-                q.remove(elem)
-        lock.release()
+                break
+            elif elem[1] == 'start':
+                sock.sendall(b'start signal')
+            elif elem[1] == 'fix': #이 부분 수정필요
+                sock.sendall(b'fix signal')
+                temp_list, heattime_list, staytime_list = [None] * 10, [None] * 10, [None] * 10
+                recv_process_id, mete, manu, inp = elem[2:6]
+                count = int(elem[6])
+                temp_list[:count] = list(map(int, elem[7 : 7 + count]))
+                heattime_list[:count] = list(map(int, elem[7 + count : 7 + (2 * count)]))
+                staytime_list[:count] = list(map(int, elem[7 + (2 * count) : 7 + (3 * count)]))
+                gas = elem[-1]
+
+                send_pkt = packet_detail_setting(count, elem[7:7+count], elem[7 + count : 7 + (2 * count)], elem[7 + (2 * count) : 7 + (3 * count)], gas)
+                sock.sendall(send_pkt)
+
+                sock.recv(1024)
+                print('[server] test line : 68')
+                #데이터베이스에 공정정보를 수정한 값으로 갱신
+                #sql = "UPDATE process SET material = %s, amount = %s, manufacture = %s, count = %s, temper1 = %s, temper2 = %s, temper3 = %s, temper4 = %s, temper5 = %s, temper6 = %s, temper7 = %s, temper8 = %s, temper9 = %s, temper10 = %s, heattime1 = %s, heattime2 = %s, heattime3 = %s, heattime4 = %s, heattime5 = %s, heattime6 = %s, heattime7 = %s, heattime8 = %s, heattime9 = %s, heattime10 = %s, staytime1 = %s, staytime2 = %s, staytime3 = %s, staytime4 = %s, staytime5 = %s, staytime6 = %s, staytime7 = %s, staytime8 = %s, staytime9 = %s, staytime10 = %s, gas = %s WHERE id = %s"
+                #val = (mete, int(inp), manu, count, temp_list[0], temp_list[1], temp_list[2], temp_list[3], temp_list[4], temp_list[5], temp_list[6], temp_list[7], temp_list[8], temp_list[9], heattime_list[0], heattime_list[1], heattime_list[2], heattime_list[3], heattime_list[4], heattime_list[5], heattime_list[6], heattime_list[7], heattime_list[8], heattime_list[9], staytime_list[0], staytime_list[1], staytime_list[2], staytime_list[3], staytime_list[4], staytime_list[5], staytime_list[6], staytime_list[7], staytime_list[8], staytime_list[9], gas, process_id)
+
+                dbcur.execute(sql, val)
+                dbconn.commit()
+                
+            no_signal = False
+            #lock.acquire()
+            q.remove(elem)
+            #lock.release()
+        #lock.release()
 
         if no_signal:
             sock.sendall(b'no_signal')
@@ -95,13 +104,14 @@ def server_furnace(sock:socket.socket, number:int, datas:Datas, q:list, dbconn, 
             dbcur.execute(sql, val)
             dbconn.commit()
 
-            lock.acquire()
+            #lock.acquire()    
             datas.close_furnace_data(number)
-            lock.release()
+            #lock.release()
             break
         
         #recv sensor value from furnace
         pkt = sock.recv(1024)
+  
         touch, temp1, temp2, temp3, temp4, temp5, temp6, flow, press, last = read_packet(pkt)
 
         #create current value which represent current time
@@ -115,16 +125,15 @@ def server_furnace(sock:socket.socket, number:int, datas:Datas, q:list, dbconn, 
 
         #normal end of process
         if last == 'True':
-            print('testline in thread 131')
             sock.sendall(b'end signal')
             sql = "UPDATE process SET output = %s WHERE id = %s"
             val = (int(0), process_id)
             dbcur.execute(sql, val)
             dbconn.commit()
 
-            lock.acquire()
+            #lock.acquire()   
             datas.close_furnace_data(number)
-            lock.release()
+            #lock.release()
             break
 
     dbconn.close()
@@ -141,18 +150,17 @@ def server_client(sock:socket.socket, datas:Datas, q:list, dbconn, lock):
     number = None
 
     while True:
-        print(temp)
         lock.acquire()
         data = datas.state_furnace()
         lock.release()
 
         recv_msg = sock.recv(1024).decode()
         recv_msg_list = recv_msg.split()
-        if recv_msg_list[0] == 'esc':
+        if recv_msg_list[0] == 'esc':   #when back button is clicked
             temp = None
             number = None
             sock.sendall(parameter.success_str.encode())
-        elif recv_msg_list[0] == 'num':
+        elif recv_msg_list[0] == 'num':     #when furnace button is clicked
             #[message example] num 1 -> select furnace1
             if temp is None:
                 number = int(recv_msg_list[1])
@@ -160,21 +168,21 @@ def server_client(sock:socket.socket, datas:Datas, q:list, dbconn, lock):
                 sock.sendall(parameter.success_str.encode())
             else:
                 sock.sendall((parameter.error_str + '_num').encode())
-        elif recv_msg_list[0] == 'base':
+        elif recv_msg_list[0] == 'base':    #when base setting button is clicked
             if temp is not None and len(temp) == 0:
                 base_element = recv_msg_list[1:]
                 temp.append(base_element)
                 sock.sendall(parameter.success_str.encode())
             else:
                 sock.sendall((parameter.error_str + '_base').encode())
-        elif recv_msg_list[0] == 'base_fix':
+        elif recv_msg_list[0] == 'base_fix':    #when base modify button is clicked
             if temp is not None and len(temp) == 1:
                 prev_base = temp[-1]
                 temp.pop()
                 sock.sendall(parameter.success_str.encode())
             else:
                 sock.sendall((parameter.error_str + '_base_fix').encode())
-        elif recv_msg_list[0] == 'detail':
+        elif recv_msg_list[0] == 'detail':  #when datail setting button is clicked
             if temp is not None and len(temp) == 1:
                 detail_element = recv_msg_list[1:]
                 temp.append(detail_element)
@@ -185,33 +193,47 @@ def server_client(sock:socket.socket, datas:Datas, q:list, dbconn, lock):
                 q_msg = [str(number), 'start', process_id] + temp[0] + temp[1]
 
                 lock.acquire()
-                q.append(q_msg)
+                q[number - 1].append(q_msg)
                 lock.release()
 
                 sock.sendall(parameter.success_str.encode())
             else:
                 sock.sendall((parameter.error_str + '_detail').encode())
-        elif recv_msg_list[0] == 'detail_fix':
+        elif recv_msg_list[0] == 'detail_fix':  #when detail modify button is clicked
             if temp is not None and len(temp) == 2:
                 prev_detail = temp[-1]
                 temp.pop()
                 sock.sendall(parameter.success_str.encode())
             else:
                 sock.sendall((parameter.error_str + '_detail_fix').encode())
-        elif recv_msg_list[0] == 'end':
+        #아직 구현 안됨
+        elif recv_msg_list[0] == 'modify_process':    #when after detail setting is changed, datail button is clicked (send modified detail setting about exists process)
+            if temp is not None and len(temp) == 1:
+                detail_element = recv_msg_list[1:]
+                temp.append(detail_element)
+                #이제 q에 입력해야 한다.
+                q_msg = [str(number), 'fix', process_id] + temp[0] + temp[1]
+
+                lock.acquire()
+                q[number - 1].append(q_msg)
+                lock.release()
+
+                sock.sendall(parameter.success_str.encode())
+
+        elif recv_msg_list[0] == 'end': #when end process button is clicked
             temp.clear()
             q_msg = [str(number), recv_msg_list[0]]
 
             lock.acquire()
-            q.append(q_msg)
+            q[number - 1].append(q_msg)
             lock.release()
 
             sock.sendall(parameter.success_str.encode())
         elif recv_msg_list[0] == 'init':
-            number = int(recv_msg_list[1])
-            print('thread 221 : ' + str(number))
-            base_element = recv_msg_list[2:5]
-            detail_element = recv_msg_list[5:]
+            process_id = recv_msg_list[1]
+            number = int(recv_msg_list[2])
+            base_element = recv_msg_list[3:6]
+            detail_element = recv_msg_list[6:]
             temp = order_list[number - 1]
             temp.append(base_element)
             temp.append(detail_element)
@@ -221,93 +243,3 @@ def server_client(sock:socket.socket, datas:Datas, q:list, dbconn, lock):
         else:
             sock.sendall((parameter.error_str + '_wrong msg type' + recv_msg_list[0]).encode())
     sock.close()
-
-#dash앱에서 사용할 thread
-def monitoring(values, times, lock:threading.Lock):
-    now_working_process = ['-', '-', '-', '-', '-', '-', '-', '-']
-    dbconn = pymysql.connect(host=parameter.host, user=parameter.user, password=parameter.password, database=parameter.db, charset=parameter.charset)
-    dbcur = dbconn.cursor()
-
-    sql = parameter.sql
-    #sql = parameter.test_sql
-    dbcur.execute(sql)
-    processes = dbcur.fetchall()
-
-    for process in processes:
-        number = int(process[0][:2])
-
-        if now_working_process[number - 1] == '-':
-            now_working_process[number - 1] = process[0]
-        else:
-            #만약 해당 열처리로에 2개 이상 작동중인 공정이 발견될 경우(비정상, 일반적인 경우에 발견되어서는 안됨), 이후 공정으로 설정
-            if int(process[0].split('_')[-1]) >= int(now_working_process[number - 1].split('_')[-1]):
-                now_working_process[number - 1] = process[0]
-            else:
-                sql = "UPDATE process SET output = %s WHERE id = %s"
-                val = (int(2), process[0])
-                dbcur.execute(sql, val)
-                dbconn.commit()
-
-        sql = """select * from furnace""" + str(number) +  """ where id = '""" + process[0] + """' order by current desc limit 10"""
-        dbcur.execute(sql)
-        sensors = list(dbcur.fetchall())
-        sensors.reverse()
-
-        lock.acquire()
-        values[int(number) - 1] = [one_step[2:] for one_step in sensors]
-        times[int(number) - 1] = [utils.change_current_to_seconds(one_step[0]) for one_step in sensors]
-        lock.release()
-
-    while True:
-        dbconn.commit()
-        sql = parameter.sql
-        #sql = parameter.test_sql
-        dbcur.execute(sql)
-        processes = dbcur.fetchall()
-
-        print('testline 393')
-        print(processes)
-
-        for process in processes:
-            dbconn.commit()
-            number = int(process[0][:2])
-            index = number - 1
-            sql = """select * from furnace""" + str(number) +  """ where id = '""" + process[0] + """' order by current desc limit 1"""
-            dbcur.execute(sql)
-            sensors = list(dbcur.fetchall())
-
-            
-            #기존 기록되었던 공정에서 다른 공정으로 변경된 경우 그래프 갱신을 위해 데이터 초기화
-            if now_working_process[index] != process[0]:
-                print('testline 399')
-                now_working_process[index] = process[0]
-                values[index] = []
-                times[index] = []
-            
-
-            #진행중인 공정이나, 아직 센서값이 없는 경우(막 시작한 경우)
-            if len(sensors) == 0:
-                t.sleep(1)
-                continue
-
-            #진행중인 공정이나, 아직 센서값이 업데이트되지 않은 경우(마지막 시간과 동일한 경우)
-            if len(times[index]) != 0  and times[index][-1] == utils.change_current_to_seconds(sensors[0][0]):
-                t.sleep(1)
-                continue
-
-            lock.acquire()
-            if len(values[index]) >= 10:
-                values[index][:-1] = values[index][1:]
-                times[index][:-1] = times[index][1:]
-                values[index][-1] = sensors[0][2:]
-                times[index][-1] = utils.change_current_to_seconds(sensors[0][0])
-            else:
-                values[index].append(sensors[0][2:])
-                times[index].append(utils.change_current_to_seconds(sensors[0][0]))
-            lock.release()
-
-        t.sleep(parameter.time_interval)
-
-    dbconn.close()
-
-

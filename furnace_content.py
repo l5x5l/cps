@@ -207,6 +207,7 @@ class FurnaceContent(QWidget):
         self.dbconn = dbconn
         self.combobox_opt = combo_opt
 
+        self.process_id = None
         self.heattime_list = []
         self.staytime_list = []
         self.temp_list = []
@@ -312,13 +313,15 @@ class FurnaceContent(QWidget):
 
     def apply_exist_process(self, process_setting, sensors):
         """
+        when pyqt5 process is starting, reading information of exists ongoing process
+
         process_setting's format =  [process_id, material, amount, process, count, temp_list, heattime, staytime, gas, output]
         """
-        process_id, material, amount, process, count = process_setting[:5]
+        self.process_id, material, amount, process, count = process_setting[:5]
         temp_list, heattime_list, staytime_list = process_setting[5:5+count], process_setting[15:15+count], process_setting[25:25+count]
         gas = process_setting[-2]
 
-        number = process_id[:2]
+        number = self.process_id[:2]
 
         temp_list = list(map(str, temp_list))
         heattime_list = list(map(str, heattime_list))
@@ -350,7 +353,7 @@ class FurnaceContent(QWidget):
         #send to server to notice about ongoing process
         base_msg = material + ' ' + process + ' ' + str(amount)
         detail_msg = str(count) + ' ' + temp + ' ' + heattime + ' ' + staytime + ' ' + gas
-        init_msg = 'init ' + number + ' ' + base_msg + ' ' + detail_msg
+        init_msg = 'init ' + self.process_id + ' ' + number + ' ' + base_msg + ' ' + detail_msg     #add self.process_id + ' '
 
         init_byte = init_msg.encode()
         self.sock.sendall(init_byte)

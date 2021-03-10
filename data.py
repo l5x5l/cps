@@ -16,17 +16,6 @@ class Datas:
         self.datas[index]['process'] = '-'
 
 
-    # 오직 테스트용으로만 사용, 그 이외의 용도로는 사용을 금함
-    def for_test(self):
-        test_number = []
-        for i in range(5):
-            test_number.append(random.randrange(0, parameter.total_furnace))
-
-        for test in test_number:
-            self.datas[test]['state'] = 'work'
-            self.datas[test]['process'] = 'test_process'
-
-
     def on_furnace_data(self, number:int):
         index = number - 1
         self.datas[index]['state'] = 'on'

@@ -83,14 +83,19 @@ class Detail_Button(QPushButton):
         self.disable_list = None
         self.base_opt = 'detail'
 
+        #아 변수명을 뭘로 하지
+        self.is_process_wokring = False
+
         self.setCheckable(True)
 
-    def set_state_start(self):
+    def set_state_start(self):  #using when clear UI
         self.now_start_button = True
         self.setStyleSheet("background-color: %s" % (self.colors[self.now_start_button]))
         self.setText(self.texts[self.now_start_button])
         self.base_opt = 'detail'
 
+        self.is_process_wokring = False
+        
     def set_state_fix(self):
         self.now_start_button = False
         self.setStyleSheet("background-color: %s" % (self.colors[self.now_start_button]))
@@ -103,6 +108,9 @@ class Detail_Button(QPushButton):
         self.setText(self.texts[self.now_start_button])
 
         if self.now_start_button:
+            # if self.is_process_wokring:
+            #      self.base_opt = 'modify_process'
+            # else:
             self.base_opt = 'detail'
         else:
             self.base_opt = 'detail_fix'
@@ -133,4 +141,3 @@ class Detail_Button(QPushButton):
         
         for elem in self.able_list:
             elem.setEnabled(self.now_start_button)
-

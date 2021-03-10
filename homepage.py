@@ -58,10 +58,11 @@ class HomePage(QWidget):
         self.sock = sock
         self.dbconn = dbconn
 
+        self.processes_id = []
         #load combobox content from json file test
         with open(parameter.json_path, 'r') as combo_json:
             self.combo_opt = json.load(combo_json)
-
+            self.processes_id.append('-')
         self.initUI()
 
 
@@ -186,11 +187,12 @@ def monitoring(dbconn, furnace_pages, working_process = []):
         dbconn.commit()
         processes = get_working_process(dbcur)
         for i in range(len(processes)):
-            if now_working_process[i] != processes[i]:
-                furnace_pages[i].sensor_area.clear()
-                furnace_pages[i].clear_UI()
-                now_working_process[i] = processes[i]
-            sql = """select * from furnace""" + str(i+1) +  """ where id = '""" + now_working_process[i] + """' order by current desc limit 1"""
+            # if now_working_process[i] != processes[i]:
+            #     furnace_pages[i].sensor_area.clear()
+            #     furnace_pages[i].clear_UI()
+            #     now_working_process[i] = processes[i]
+            # sql = """select * from furnace""" + str(i+1) +  """ where id = '""" + now_working_process[i] + """' order by current desc limit 1"""
+            sql = """select * from furnace""" + str(i+1) +  """ where id = '""" + processes[i] + """' order by current desc limit 1"""
             dbcur.execute(sql)
             sensors = list(dbcur.fetchall())
 
@@ -204,7 +206,7 @@ def monitoring(dbconn, furnace_pages, working_process = []):
     dbcur.close()
 
 
-#for test UI
+#for testing UI
 if __name__ == "__main__":
     #C = client.Client(parameter.host, parameter.port)
     #C.connect()

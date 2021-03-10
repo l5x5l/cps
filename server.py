@@ -15,7 +15,12 @@ class Server(Device):
         self.serv_addr = (self.addr, self.port)
         self.datas = data.Datas(total_furncae)
         self.q = []
+        self.locks = []
         
+        for i in range(parameter.total_furnace):
+            self.q.append([])
+            self.locks.append(0)
+
         self.lock = threading.Lock()
 
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -41,9 +46,10 @@ class Server(Device):
     def start_thread(self, conn_sock, confirm_msg):
         confirm = confirm_msg
         if confirm[0] == 'furnace':
-            self.datas.on_furnace_data(int(confirm[1]))
+            number = int(confirm[1])    #furnace number
+            self.datas.on_furnace_data(number)
             dbconn = self.connect_db(parameter.user, parameter.password, parameter.db, parameter.charset)
-            t = threading.Thread(target=thread.server_furnace, args=(conn_sock, int(confirm[1]), self.datas, self.q, dbconn, self.lock))
+            t = threading.Thread(target=thread.server_furnace, args=(conn_sock, number, self.datas, self.q[number - 1], dbconn, self.lock))
             t.start()
         elif confirm[0] == 'client':
             dbconn = self.connect_db(parameter.user, parameter.password, parameter.db, parameter.charset)

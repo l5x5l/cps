@@ -15,11 +15,9 @@ class Server(Device):
         self.serv_addr = (self.addr, self.port)
         self.datas = data.Datas(total_furncae)
         self.q = []
-        self.locks = []
         
         for i in range(parameter.total_furnace):
             self.q.append([])
-            self.locks.append(0)
 
         self.lock = threading.Lock()
 

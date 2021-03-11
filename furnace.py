@@ -54,7 +54,7 @@ class Furnace(Device):
         if self.index >= len(self.tempers):
             return
         else:
-            if self.current_time < self.heattimes[self.index]:  #승온
+            if self.current_time <= self.heattimes[self.index]:  #승온
                 if self.inclination is None:
                     self.inclination = self.tempers[0] / self.heattimes[0]
                 if self.index == 0: #first heattime
@@ -63,7 +63,7 @@ class Furnace(Device):
                 else:   
                     self.mean = self.tempers[self.index - 1] + int(self.inclination * (self.current_time - self.staytimes[self.index - 1]))
 
-            elif self.current_time < self.staytimes[self.index]:    #유지
+            elif self.current_time <= self.staytimes[self.index]:    #유지
                 #self.mean = self.tempers[self.index]
                 pass
             else:      #승온

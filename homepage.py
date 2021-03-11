@@ -187,12 +187,20 @@ def monitoring(dbconn, furnace_pages, working_process = []):
         dbconn.commit()
         processes = get_working_process(dbcur)
         for i in range(len(processes)):
-            # if now_working_process[i] != processes[i]:
-            #     furnace_pages[i].sensor_area.clear()
-            #     furnace_pages[i].clear_UI()
-            #     now_working_process[i] = processes[i]
-            # sql = """select * from furnace""" + str(i+1) +  """ where id = '""" + now_working_process[i] + """' order by current desc limit 1"""
-            sql = """select * from furnace""" + str(i+1) +  """ where id = '""" + processes[i] + """' order by current desc limit 1"""
+            if processes[i] == '-':     
+                if now_working_process[i] == '-':   # 공정이 존재하지 않은 경우
+                    continue        
+                else:                               #공정이 종료된 경우
+                    now_working_process[i] = processes[i]   
+                    furnace_pages[i].sensor_area.clear()
+                    furnace_pages[i].clear_UI()
+                    now_working_process[i] = processes[i]
+
+            if now_working_process[i] == '-' and processes[i] != '-':   # 공정이 새로 시작된 경우
+                now_working_process[i] = processes[i]
+
+            sql = """select * from furnace""" + str(i+1) +  """ where id = '""" + now_working_process[i] + """' order by current desc limit 1"""
+            #sql = """select * from furnace""" + str(i+1) +  """ where id = '""" + processes[i] + """' order by current desc limit 1"""
             dbcur.execute(sql)
             sensors = list(dbcur.fetchall())
 

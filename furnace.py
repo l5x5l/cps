@@ -109,9 +109,9 @@ class Furnace(Device):
         while True:
             isLast = 'False'
             signal = self.recv_msg(self.sock)
-            print('[furnace_main] ' + signal)
+
             if signal == 'end signal':
-                print('testline in furnace.py 113, end signal')
+                print('end signal recv')
                 break 
                 #self.close()
             elif signal == 'fix signal':    #need to fix
@@ -151,6 +151,7 @@ class Furnace(Device):
 
     def process_setting(self, count, temp, heattime, staytime, gas):
         totaltime = 0
+        self.index = 0
         self.heattimes.clear()
         self.staytimes.clear()
         self.tempers = temp

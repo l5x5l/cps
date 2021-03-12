@@ -445,6 +445,14 @@ class SubWindow(QDialog):
         self.setting_area = QVBoxLayout()
         self.button_area = QVBoxLayout()
 
+        explain_texts = QHBoxLayout()
+        temp_text = QLabel("온도(섭씨)")
+        heat_text = QLabel("승온시간(s)")
+        stay_text = QLabel("유지시간(s)")
+        explain_texts.addWidget(temp_text)
+        explain_texts.addWidget(heat_text)
+        explain_texts.addWidget(stay_text)
+
 
         btnOK = QPushButton(parameter.confirm_str)
         btnOK.clicked.connect(self.OKbutton_click)
@@ -453,6 +461,7 @@ class SubWindow(QDialog):
         btnAdd = QPushButton(parameter.add_str)
         btnAdd.clicked.connect(self.Addbutton_click)
 
+        self.setting_area.addLayout(explain_texts)
         self.setting_area.addLayout(self.setting_row())
         self.OK_CAN.addWidget(btnOK, 1)
         self.OK_CAN.addWidget(btnCancel, 1)
@@ -500,14 +509,14 @@ class SubWindow(QDialog):
 
 
     def Addbutton_click(self):
-        if self.setting_area.count() < 10:
+        if self.setting_area.count() < 11:
             self.setting_area.addLayout(self.setting_row())
 
     ##before delete layout, you must delete all widget in layout
     def Delbutton_click(self, widget):
         count = self.setting_area.count()
 
-        if count >= 2:
+        if count >= 3:
             for i in reversed(range(widget.count())):
                 widget.itemAt(i).widget().setParent(None)
             self.setting_area.removeItem(widget)

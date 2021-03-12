@@ -7,6 +7,7 @@ import pymysql
 import threading
 import time
 import json
+import utils
 from setting_content import SettingContent
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
@@ -167,6 +168,14 @@ def apply_exist_process(dbconn, furnace_pages):
         sql = """select * from process where id = '""" + processes[i] + """'"""
         dbcur.execute(sql)
         process_setting = list(dbcur.fetchall()[0]) 
+
+        #add start time
+        # sql = f"""select current from furnace{str(i+1)} where id = '{processes[i]}' order by current asc limit 1"""
+        # dbcur.execute(sql)
+        # start_time = dbcur.fetchall()
+        # if not start_time:
+        #     start_time = utils.make_current()
+
         furnace_pages[i].apply_exist_process(process_setting, sensors)   
     dbcur.close()
     return processes

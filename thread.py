@@ -72,7 +72,6 @@ def server_furnace(sock:socket.socket, number:int, datas:Datas, q:list, dbconn, 
             t.sleep(time_interval)
 
         #after furnace starts process
-        print('testline in thread 75, next step')
         while True:
             no_signal = True
             end_flag = False
@@ -241,8 +240,6 @@ def server_client(sock:socket.socket, datas:Datas, q:list, dbconn, lock):
 
             lock.acquire()
             q[number - 1].append(q_msg)
-            print('testline in 251')
-            print(q)
             lock.release()
 
             sock.sendall(parameter.success_str.encode())

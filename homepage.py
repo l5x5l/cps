@@ -190,11 +190,16 @@ def monitoring(dbconn, furnace_pages, working_process = []):
             if processes[i] == '-':     
                 if now_working_process[i] == '-':   # 공정이 존재하지 않은 경우
                     continue        
-                else:                               #공정이 종료된 경우
+                else:          #공정이 종료된 경우
+                    dbconn.commit()                      
+                    sql = f"""select output from process where id = '{now_working_process[i]}'"""
+                    dbcur.execute(sql)
+                    result = dbcur.fetchall()
                     now_working_process[i] = processes[i]   
                     furnace_pages[i].sensor_area.clear()
-                    furnace_pages[i].clear_UI()
-                    now_working_process[i] = processes[i]
+                    if result[0][0] == 0:
+                        furnace_pages[i].stop_button_click()
+
 
             if now_working_process[i] == '-' and processes[i] != '-':   # 공정이 새로 시작된 경우
                 now_working_process[i] = processes[i]

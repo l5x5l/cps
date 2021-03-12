@@ -106,26 +106,29 @@ class Furnace(Device):
 
 
     def furnace_main(self):
-        signal = self.recv_msg(self.sock)
-        print('[furnace] ' + signal)
-        if signal == 'end signal':
-            self.close()
-        elif signal == 'fix signal':    #need to fix
-            self.send_msg('fix confirm', self.sock)
-            self.modify()
+        while True:
+            isLast = 'False'
+            signal = self.recv_msg(self.sock)
+            print('[furnace_main] ' + signal)
+            if signal == 'end signal':
+                print('testline in furnace.py 113, end signal')
+                break 
+                #self.close()
+            elif signal == 'fix signal':    #need to fix
+                self.send_msg('fix confirm', self.sock)
+                self.modify()
 
+            touch, temp1, temp2, temp3, temp4, temp5, temp6, flow, press, isLast = self.get_sensors()
+            send_pkt = packet_sensor(touch, temp1, temp2, temp3, temp4, temp5, temp6, flow, press, isLast)
+            self.send_msg(send_pkt, self.sock)
 
-        touch, temp1, temp2, temp3, temp4, temp5, temp6, flow, press, isLast = self.get_sensors()
-        send_pkt = packet_sensor(touch, temp1, temp2, temp3, temp4, temp5, temp6, flow, press, isLast)
-        self.send_msg(send_pkt, self.sock)
+            if isLast == 'True':
+                break
+                #self.close()
 
+            self.current_time = int((datetime.datetime.now() - self.start_time).total_seconds())
 
-        if isLast == 'True':
-            self.close()
-
-        self.current_time = int((datetime.datetime.now() - self.start_time).total_seconds())
-
-        time.sleep(parameter.time_interval)
+            time.sleep(parameter.time_interval)
 
 
     def close(self):
@@ -135,12 +138,8 @@ class Furnace(Device):
 
     def preprocessing(self):
         recv_pkt = self.recv_msg(self.sock)
-        print('[furnace-test line 122] recv pkt' + recv_pkt)
         count, temp, heattime, staytime, gas = read_packet(recv_pkt)
         
-        print('[furnace-test line 125] recv pkt')
-        print(temp)
-
         self.process_setting(count, temp, heattime, staytime, gas)
 
 
@@ -152,7 +151,10 @@ class Furnace(Device):
 
     def process_setting(self, count, temp, heattime, staytime, gas):
         totaltime = 0
+        self.heattimes.clear()
+        self.staytimes.clear()
         self.tempers = temp
+        
         self.heattimes.append(heattime[0])
         self.staytimes.append(self.heattimes[0] + staytime[0])
         totaltime += heattime[0]
@@ -177,8 +179,8 @@ class Furnace(Device):
 
 furnace = Furnace('165.246.44.133', 3050, sys.argv[1])
 furnace.connect()
-furnace.preprocessing()
 while True:
+    furnace.preprocessing()
     furnace.furnace_main()
 
 furnace.close()

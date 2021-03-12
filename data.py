@@ -19,6 +19,7 @@ class Datas:
     def on_furnace_data(self, number:int):
         index = number - 1
         self.datas[index]['state'] = 'on'
+        self.datas[index]['process'] = '-'
         
 
     def working_furnace_data(self, number:int, process_id:str):

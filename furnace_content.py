@@ -4,6 +4,7 @@ import client
 import sys
 import pymysql
 import json
+import utils
 from PyQt5 import QtCore
 from PyQt5.QtWidgets import *
 from PyQt5.QtGui import QPixmap
@@ -208,6 +209,7 @@ class FurnaceContent(QWidget):
         self.combobox_opt = combo_opt
 
         self.process_id = None
+        self.process_start_time = None
         self.heattime_list = []
         self.staytime_list = []
         self.temp_list = []
@@ -311,12 +313,16 @@ class FurnaceContent(QWidget):
         self.setLayout(self.layout)
 
 
-    def apply_exist_process(self, process_setting, sensors):
+    def apply_exist_process(self, process_setting, sensors, start_time):
         """
         when pyqt5 process is starting, reading information of exists ongoing process
 
         process_setting's format =  [process_id, material, amount, process, count, temp_list, heattime, staytime, gas, output]
+        start_time(str) : start time, form is HHMMSS
         """
+        self.process_start_time = utils.change_current_to_seconds(start_time)
+        print(f'testline in furnace_content 324 {self.process_start_time}')
+
         self.process_id, material, amount, process, count = process_setting[:5]
         temp_list, heattime_list, staytime_list = process_setting[5:5+count], process_setting[15:15+count], process_setting[25:25+count]
         gas = process_setting[-2]
@@ -380,12 +386,12 @@ class FurnaceContent(QWidget):
 
     def set_detail_temp_time_click(self):
         win = self.setting_popup
-        r = win.showModel()
+        r = win.showModel(self.process_start_time)
 
         if r:
             count = win.setting_area.count()
             heattime_list, staytime_list, temp_list = [], [], []
-            for i in range(count):
+            for i in range(count):   #change start point 0 to 1
                 temp_list.append(win.setting_area.itemAt(i).itemAt(0).widget().text())
                 heattime_list.append(win.setting_area.itemAt(i).itemAt(1).widget().text())
                 staytime_list.append(win.setting_area.itemAt(i).itemAt(2).widget().text())
@@ -395,6 +401,8 @@ class FurnaceContent(QWidget):
             self.temp_list = temp_list
             
     def clear_UI(self):
+        self.process_start_time = None
+
         for elem in self.base_disable:
             elem.setEnabled(False) 
         for elem in self.detail_disable:
@@ -442,6 +450,7 @@ class SubWindow(QDialog):
         #consist of ok button and cancel button
         self.OK_CAN = QHBoxLayout()
         #area where input time and temper
+        self.setting_and_explain_area = QVBoxLayout()
         self.setting_area = QVBoxLayout()
         self.button_area = QVBoxLayout()
 
@@ -461,14 +470,16 @@ class SubWindow(QDialog):
         btnAdd = QPushButton(parameter.add_str)
         btnAdd.clicked.connect(self.Addbutton_click)
 
-        self.setting_area.addLayout(explain_texts)
         self.setting_area.addLayout(self.setting_row())
+
+        self.setting_and_explain_area.addLayout(explain_texts)
+        self.setting_and_explain_area.addLayout(self.setting_area)
         self.OK_CAN.addWidget(btnOK, 1)
         self.OK_CAN.addWidget(btnCancel, 1)
         self.button_area.addWidget(btnAdd)
         self.button_area.addLayout(self.OK_CAN)
 
-        self.right_area.addLayout(self.setting_area, 5)
+        self.right_area.addLayout(self.setting_and_explain_area, 5)
         self.right_area.addLayout(self.button_area, 3)
 
         self.layout.addLayout(self.graph_area, 7)
@@ -509,14 +520,14 @@ class SubWindow(QDialog):
 
 
     def Addbutton_click(self):
-        if self.setting_area.count() < 11:
+        if self.setting_area.count() < 10:
             self.setting_area.addLayout(self.setting_row())
 
     ##before delete layout, you must delete all widget in layout
     def Delbutton_click(self, widget):
         count = self.setting_area.count()
 
-        if count >= 3:
+        if count >= 2:
             for i in reversed(range(widget.count())):
                 widget.itemAt(i).widget().setParent(None)
             self.setting_area.removeItem(widget)
@@ -525,7 +536,7 @@ class SubWindow(QDialog):
         time_list = [0]
         temp_list = [0]
         
-        for i in range(self.setting_area.count()):
+        for i in range(self.setting_area.count()):   #change start point 0 to 1
             target = self.setting_area.itemAt(i)
             temp_list.append(int(target.itemAt(0).widget().text()))
             temp_list.append(int(target.itemAt(0).widget().text()))
@@ -540,7 +551,26 @@ class SubWindow(QDialog):
     def Cancelbutton_click(self):
         self.reject()
 
-    def showModel(self):
+    def showModel(self, start_time = None):
+        if start_time:
+            time_list = [0]
+
+            for i in range(self.setting_area.count()):
+                target = self.setting_area.itemAt(i)
+                time_list.append(time_list[-1] + int(target.itemAt(1).widget().text()))
+                time_list.append(time_list[-1] + int(target.itemAt(2).widget().text()))
+            now = utils.make_current()
+            now = utils.change_current_to_seconds(now)
+            diff = int(now) - int(start_time)
+
+            count = self.setting_area.count()
+            for i in range(count):
+                if time_list[i*2] <= diff:
+                    self.setting_area.itemAt(i).itemAt(0).widget().setEnabled(False)
+                    self.setting_area.itemAt(i).itemAt(1).widget().setEnabled(False)
+                    self.setting_area.itemAt(i).itemAt(2).widget().setEnabled(False)
+                    self.setting_area.itemAt(i).itemAt(3).widget().setEnabled(False)
+            
         return super().exec_()
         
 

@@ -169,14 +169,15 @@ def apply_exist_process(dbconn, furnace_pages):
         dbcur.execute(sql)
         process_setting = list(dbcur.fetchall()[0]) 
 
-        #add start time
-        # sql = f"""select current from furnace{str(i+1)} where id = '{processes[i]}' order by current asc limit 1"""
-        # dbcur.execute(sql)
-        # start_time = dbcur.fetchall()
-        # if not start_time:
-        #     start_time = utils.make_current()
-
-        furnace_pages[i].apply_exist_process(process_setting, sensors)   
+        #add start time (used when process fix)
+        sql = f"""select current from furnace{str(i+1)} where id = '{processes[i]}' order by current asc limit 1"""
+        dbcur.execute(sql)
+        start_time = dbcur.fetchall()
+        if not start_time:
+            start_time = utils.make_current()
+        else:
+            start_time = start_time[0][0]
+        furnace_pages[i].apply_exist_process(process_setting, sensors, start_time)   
     dbcur.close()
     return processes
 

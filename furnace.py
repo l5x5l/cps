@@ -78,7 +78,7 @@ class Furnace(Device):
 
     #실제 센서값을 재현하기 위해 사용
     def get_sensors(self):
-        #try:
+        print('testline in furnace.py line 81')
         temp = []
         self.set_mean()
         for i in range(6):
@@ -151,9 +151,6 @@ class Furnace(Device):
 
     def process_setting(self, count, temp, heattime, staytime, gas):
         totaltime = 0
-        self.index = 0
-        self.heattimes.clear()
-        self.staytimes.clear()
         self.tempers = temp
         
         self.heattimes.append(heattime[0])
@@ -171,16 +168,21 @@ class Furnace(Device):
         self.start_time = datetime.datetime.now()
         self.sb = 2
         self.gas = gas
-
-
+        
     def modify_setting(self, temp, time):
         self.mean = temp
         self.process_time = time
 
+    def clear_setting(self):
+        self.index = 0
+        self.heattimes.clear()
+        self.staytimes.clear()
+        self.tempers = None
 
 furnace = Furnace('165.246.44.133', 3050, sys.argv[1])
 furnace.connect()
 while True:
+    furnace.clear_setting()
     furnace.preprocessing()
     furnace.furnace_main()
 

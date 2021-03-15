@@ -59,11 +59,13 @@ class SensorPlot(QWidget):
 
         #middle area에도 센서값을 표시하는 구역이 존재하므로 통합
         self.middle_area = QVBoxLayout()
+        state_text = QLabel()
         furnace_img = QLabel()
         furnace_img.setPixmap(QPixmap('.\\images\\furnace.png'))
 
         sensor_text_area = QTableWidget(self) #나중에 세부적으로 설정할 예정
 
+        self.middle_area.addWidget(state_text, 1)
         self.middle_area.addWidget(furnace_img, 7)
         self.middle_area.addWidget(sensor_text_area, 3)
 
@@ -229,6 +231,8 @@ class FurnaceContent(QWidget):
         #right_area : select base element and detail element
         self.right_area = QVBoxLayout()
         
+        state_text = QLabel()
+
         #base element setting
         base_area = QVBoxLayout()
         material_opt = QComboBox(self)
@@ -298,8 +302,8 @@ class FurnaceContent(QWidget):
         #add click event to end_process_button
         detail_area.itemAt(2).itemAt(1).widget().clicked.connect(self.stop_button_click)
 
-        self.right_area.addLayout(base_area,2)
-        self.right_area.addLayout(detail_area,2)
+        self.right_area.addLayout(base_area, 4)
+        self.right_area.addLayout(detail_area, 8)
 
         #concat
         self.main_layout.addWidget(self.sensor_area,3)
@@ -416,14 +420,29 @@ class FurnaceContent(QWidget):
 
     def stop_button_click(self):
         self.clear_UI()
-
+        print('testline in furance_contetn 423, stop_button click')
         self.sock.sendall(b'end')
+        self.sock.recv(1024)    #add this
+
+    def stop_process_nature(self):
+        self.clear_UI()
+        
 
     def SetStartTime(self):
         if not self.process_start_time:
             temp = utils.make_current()
             self.process_start_time = utils.change_current_to_seconds(temp)
 
+    def SetStateText(self, state:str, process_id = None):
+        if state == 'on':
+            self.sensor_area.middle_area.itemAt(0).widget().setText(f"furnace{self.number} is on")
+        elif state == 'working':
+            self.process_id = process_id
+            self.sensor_area.middle_area.itemAt(0).widget().setText(f"furnace{self.number} is working : {self.process_id}")
+        elif state == '-':
+            self.sensor_area.middle_area.itemAt(0).widget().setText(f"furnace{self.number} is off")
+        else:
+            self.sensor_area.middle_area.itemAt(0).widget().setText(f"unknown state {state}")
 
 class SubWindow(QDialog):
     def __init__(self):
@@ -475,7 +494,7 @@ class SubWindow(QDialog):
         btnAdd = QPushButton(parameter.add_str)
         btnAdd.clicked.connect(self.Addbutton_click)
 
-        self.setting_area.addLayout(self.setting_row())
+        self.setting_area.addLayout(self.CreateSettingRow())
 
         self.setting_and_explain_area.addLayout(explain_texts)
         self.setting_and_explain_area.addLayout(self.setting_area)
@@ -493,7 +512,7 @@ class SubWindow(QDialog):
         self.setLayout(self.layout)
 
 
-    def setting_row(self, temp = '0', heat = '0', stay = '0'):
+    def CreateSettingRow(self, temp = '0', heat = '0', stay = '0'):
         row = QHBoxLayout()  
         number = self.setting_area.count()
         heattime_input = QLineEdit(heat)    #what different between QLineEdit(self) and QLineEdit()?
@@ -520,13 +539,13 @@ class SubWindow(QDialog):
                 self.setting_area.itemAt(i).itemAt(1).widget().setText(heattimes[i])
                 self.setting_area.itemAt(i).itemAt(2).widget().setText(staytimes[i])
             else:
-                self.setting_area.addLayout(self.setting_row(tempers[i], heattimes[i], staytimes[i]))
+                self.setting_area.addLayout(self.CreateSettingRow(tempers[i], heattimes[i], staytimes[i]))
         self.Renewbutton_click()
 
 
     def Addbutton_click(self):
         if self.setting_area.count() < 10:
-            self.setting_area.addLayout(self.setting_row())
+            self.setting_area.addLayout(self.CreateSettingRow())
 
     ##before delete layout, you must delete all widget in layout
     def Delbutton_click(self, widget):
@@ -584,7 +603,7 @@ class SubWindow(QDialog):
                 for j in reversed(range(target_row.count())):
                     target_layout.itemAt(i).itemAt(j).widget().setParent(None)
                 target_layout.removeItem(target_row)
-            target_layout.addLayout(self.setting_row())
+            target_layout.addLayout(self.CreateSettingRow())
         return super().exec_()
         
 

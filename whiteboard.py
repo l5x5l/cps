@@ -110,7 +110,6 @@ def server_client(sock:socket.socket, datas:Datas, q:list, dbconn, lock):
 
     while True:
         lock.acquire()
-        data = datas.state_furnace()
         print(datas.datas[0]['process'])
         lock.release()
 

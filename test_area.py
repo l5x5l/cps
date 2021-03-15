@@ -61,14 +61,14 @@ sock.sendall(data_list.encode())
 
 #     return len(result) == 0
 
-dbconn = pymysql.connect(host=parameter.host, user = parameter.user, password = parameter.password, database = parameter.db, charset = parameter.charset)
-dbcur = dbconn.cursor()
+# dbconn = pymysql.connect(host=parameter.host, user = parameter.user, password = parameter.password, database = parameter.db, charset = parameter.charset)
+# dbcur = dbconn.cursor()
 
-process_id = '01_2103121613'
-sql = f"""SELECT output from process where id = '{process_id}'"""
-dbcur.execute(sql)
-result = dbcur.fetchall()
-print(result[0][0])
+# process_id = '01_2103121613'
+# sql = f"""SELECT output from process where id = '{process_id}'"""
+# dbcur.execute(sql)
+# result = dbcur.fetchall()
+# print(result[0][0])
 
 # # process_id = "02_2103101432"
 
@@ -100,3 +100,7 @@ print(result[0][0])
 # sql = f"""DELETE from furnace{number} WHERE id = '{process_id}'"""
 # dbcur.execute(sql)
 # dbconn.commit()
+
+test = []
+test.clear()
+print(test is not None)

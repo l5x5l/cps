@@ -26,23 +26,7 @@ class Datas:
         index = number - 1
         self.datas[index]['state'] = 'working'
         self.datas[index]['process']  = process_id
-
-
-    def state_furnace(self):
-        output_str = ""
-        for i in range(self.total):
-            output_str += str(i+1)
-            if self.datas[i]['state'] == '-':
-                output_str += 'XX\n'
-            elif self.datas[i]['state'] == 'on':
-                output_str += "On\n"
-            elif self.datas[i]['state'] == 'working':
-                output_str += "work\n"
-            else:
-                output_str += "??\n"
         
-        return output_str
-
     
     def check_furnace(self, number:int, option:str):
         index = number - 1

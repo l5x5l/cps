@@ -61,7 +61,6 @@ class Base_Button(QPushButton):
         sock.sendall(msg_byte)
 
         recv_msg = sock.recv(1024).decode()
-        #print(recv_msg)
 
         self.custom_toggle()
         for elem in self.disable_list:

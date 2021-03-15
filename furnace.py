@@ -6,6 +6,9 @@ from packet import *
 from device import Device
 import sys
 import datetime
+import atexit
+
+
 
 class Furnace(Device):
     def __init__(self, host, port, number):
@@ -130,11 +133,6 @@ class Furnace(Device):
             self.current_time = int((datetime.datetime.now() - self.start_time).total_seconds())
 
             time.sleep(parameter.time_interval)
-
-
-    def close(self):
-        self.sock.close()
-        exit()
 
 
     def preprocessing(self):

@@ -49,7 +49,13 @@ class Select(QWidget):
         self.sock.sendall(send_msg.encode())
 
         recv_msg = self.sock.recv(1024).decode()
-        #print(recv_msg)
+        recv_msg_list = recv_msg.split()
+        state = recv_msg_list[0]
+        process = None
+        if len(recv_msg_list) != 1:
+            process = recv_msg_list[1]
+
+        self.stk_w.widget(number).SetStateText(state, process)
 
     
 
@@ -93,6 +99,10 @@ class HomePage(QWidget):
 
         #changeable area
         self.content_area = Select(self.dyn_content, self.sock)
+
+        # for i in range(parameter.total_furnace):
+        #     self.content_area.furnace_area.itemAt(i).set
+
         self.dyn_content.addWidget(self.content_area)
         self.furnace_list = []
         for i in range(parameter.total_furnace):
@@ -208,7 +218,7 @@ def monitoring(dbconn, furnace_pages, working_process = []):
                     now_working_process[i] = processes[i]   
                     furnace_pages[i].sensor_area.clear()
                     if result[0][0] == 0:
-                        furnace_pages[i].stop_button_click()
+                        furnace_pages[i].stop_process_nature()
 
 
             if now_working_process[i] == '-' and processes[i] != '-':   # 공정이 새로 시작된 경우

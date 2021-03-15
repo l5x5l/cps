@@ -24,6 +24,12 @@ def check_process(dbcur, process_id):
 
 
 def server_furnace(sock:socket.socket, number:int, datas:Datas, q:list, dbconn, lock):
+    """
+    server's thread which connected with furnace
+
+    크게 2 부분으로 나뉜다.
+    
+    """
     dbcur = dbconn.cursor()
     process_id = ''
     is_running = False
@@ -85,20 +91,18 @@ def server_furnace(sock:socket.socket, number:int, datas:Datas, q:list, dbconn, 
                     q.clear()
                     lock.release()
                     break
-                elif elem[1] == 'start':
-                    sock.sendall(b'start signal')
-                    no_signal = False   #이거 if 문 밖에서 안으로 이동
                 elif elem[1] == 'fix': #이 부분 수정필요
                     sock.sendall(b'fix signal')
+                    test = sock.recv(1024) #recv fix confirm msg from furnace
+                    print(f'testline in thread 91, {test.decode()}')
                     process_id, mete, manu, inp, count, temp_list, heattime_list, staytime_list, gas = utils.extract_detail_option(elem)
 
                     send_pkt = packet_detail_setting(count, elem[7:7+count], elem[7 + count : 7 + (2 * count)], elem[7 + (2 * count) : 7 + (3 * count)], gas)
                     sock.sendall(send_pkt)
 
-                    sock.recv(1024)
                     #데이터베이스에 공정정보를 수정한 값으로 갱신
-                    #sql = "UPDATE process SET material = %s, amount = %s, manufacture = %s, count = %s, temper1 = %s, temper2 = %s, temper3 = %s, temper4 = %s, temper5 = %s, temper6 = %s, temper7 = %s, temper8 = %s, temper9 = %s, temper10 = %s, heattime1 = %s, heattime2 = %s, heattime3 = %s, heattime4 = %s, heattime5 = %s, heattime6 = %s, heattime7 = %s, heattime8 = %s, heattime9 = %s, heattime10 = %s, staytime1 = %s, staytime2 = %s, staytime3 = %s, staytime4 = %s, staytime5 = %s, staytime6 = %s, staytime7 = %s, staytime8 = %s, staytime9 = %s, staytime10 = %s, gas = %s WHERE id = %s"
-                    #val = (mete, int(inp), manu, count, temp_list[0], temp_list[1], temp_list[2], temp_list[3], temp_list[4], temp_list[5], temp_list[6], temp_list[7], temp_list[8], temp_list[9], heattime_list[0], heattime_list[1], heattime_list[2], heattime_list[3], heattime_list[4], heattime_list[5], heattime_list[6], heattime_list[7], heattime_list[8], heattime_list[9], staytime_list[0], staytime_list[1], staytime_list[2], staytime_list[3], staytime_list[4], staytime_list[5], staytime_list[6], staytime_list[7], staytime_list[8], staytime_list[9], gas, process_id)
+                    sql = "UPDATE process SET material = %s, amount = %s, manufacture = %s, count = %s, temper1 = %s, temper2 = %s, temper3 = %s, temper4 = %s, temper5 = %s, temper6 = %s, temper7 = %s, temper8 = %s, temper9 = %s, temper10 = %s, heattime1 = %s, heattime2 = %s, heattime3 = %s, heattime4 = %s, heattime5 = %s, heattime6 = %s, heattime7 = %s, heattime8 = %s, heattime9 = %s, heattime10 = %s, staytime1 = %s, staytime2 = %s, staytime3 = %s, staytime4 = %s, staytime5 = %s, staytime6 = %s, staytime7 = %s, staytime8 = %s, staytime9 = %s, staytime10 = %s, gas = %s WHERE id = %s"
+                    val = (mete, int(inp), manu, count, temp_list[0], temp_list[1], temp_list[2], temp_list[3], temp_list[4], temp_list[5], temp_list[6], temp_list[7], temp_list[8], temp_list[9], heattime_list[0], heattime_list[1], heattime_list[2], heattime_list[3], heattime_list[4], heattime_list[5], heattime_list[6], heattime_list[7], heattime_list[8], heattime_list[9], staytime_list[0], staytime_list[1], staytime_list[2], staytime_list[3], staytime_list[4], staytime_list[5], staytime_list[6], staytime_list[7], staytime_list[8], staytime_list[9], gas, process_id)
 
                     dbcur.execute(sql, val)
                     dbconn.commit()
@@ -140,7 +144,7 @@ def server_furnace(sock:socket.socket, number:int, datas:Datas, q:list, dbconn, 
 
             #normal end of process
             if last == 'True':
-                #sock.sendall(b'end signal')    <-이거 꼭 필요한건가
+                #sock.sendall(b'end signal')    #<-이거 꼭 필요한건가, 이거 furnace 자체에서 공정종료를 먼저 하기 때문에 굳이 보낼 필요 없을듯
                 sql = "UPDATE process SET output = %s WHERE id = %s"
                 val = (int(0), process_id)
                 dbcur.execute(sql, val)
@@ -222,7 +226,7 @@ def server_client(sock:socket.socket, datas:Datas, q:list, dbconn, lock):
                 sock.sendall(parameter.success_str.encode())
             else:
                 sock.sendall((parameter.error_str + '_detail_fix').encode())
-        elif recv_msg_list[0] == 'modify_process':    #when after detail setting is changed, datail button is clicked (send modified detail setting about exists process)
+        elif recv_msg_list[0] == 'restart':    #when after detail setting is changed, datail button is clicked (send modified detail setting about exists process)
             if temp is not None and len(temp) == 1:
                 detail_element = recv_msg_list[1:]
                 temp.append(detail_element)

@@ -10,6 +10,8 @@ import datetime
 class Furnace(Device):
     def __init__(self, host, port, number):
         """
+        가상으로 구현한 열처리로, 실제 열처리로와 매우 큰 차이가 있을 수 있음
+
         number : furnace number
         index : used for setting sensor's temperature
         tempers : temperature list
@@ -59,13 +61,11 @@ class Furnace(Device):
                     self.inclination = self.tempers[0] / self.heattimes[0]
                 if self.index == 0: #first heattime
                     self.mean = int(self.inclination * self.current_time)
-                    pass
                 else:   
                     self.mean = self.tempers[self.index - 1] + int(self.inclination * (self.current_time - self.staytimes[self.index - 1]))
 
             elif self.current_time <= self.staytimes[self.index]:    #유지
-                #self.mean = self.tempers[self.index]
-                pass
+                self.mean = self.tempers[self.index]
             else:      #승온
                 self.index += 1
                 if self.index >= len(self.tempers):
@@ -78,7 +78,7 @@ class Furnace(Device):
 
     #실제 센서값을 재현하기 위해 사용
     def get_sensors(self):
-        print('testline in furnace.py line 81')
+        print('furnace.py 79 line, generate sensor value')
         temp = []
         self.set_mean()
         for i in range(6):
@@ -111,12 +111,13 @@ class Furnace(Device):
             signal = self.recv_msg(self.sock)
 
             if signal == 'end signal':
-                print('end signal recv')
+                print('furnace.py 112 line, end signal recv')
                 break 
                 #self.close()
             elif signal == 'fix signal':    #need to fix
+                print('furnace.py 116 line, fix singal recv')
                 self.send_msg('fix confirm', self.sock)
-                self.modify()
+                self.ModifyProcess()
 
             touch, temp1, temp2, temp3, temp4, temp5, temp6, flow, press, isLast = self.get_sensors()
             send_pkt = packet_sensor(touch, temp1, temp2, temp3, temp4, temp5, temp6, flow, press, isLast)
@@ -140,16 +141,16 @@ class Furnace(Device):
         recv_pkt = self.recv_msg(self.sock)
         count, temp, heattime, staytime, gas = read_packet(recv_pkt)
         
-        self.process_setting(count, temp, heattime, staytime, gas)
+        self.SetFurnaceVariable(count, temp, heattime, staytime, gas)
 
 
-    def modify(self):   #need to fix
+    def ModifyProcess(self):   #need to fix
         recv_pkt = self.recv_msg(self.sock)
-        temp, time = read_packet(recv_pkt)
-        self.modify_setting(temp, time)
+        count, temp, heattime, staytime, gas = read_packet(recv_pkt)
+        self.ModifyFurnaceVariable(count, temp, heattime, staytime, gas)
 
 
-    def process_setting(self, count, temp, heattime, staytime, gas):
+    def SetFurnaceVariable(self, count, temp, heattime, staytime, gas):
         totaltime = 0
         self.tempers = temp
         
@@ -169,17 +170,45 @@ class Furnace(Device):
         self.sb = 2
         self.gas = gas
         
-    def modify_setting(self, temp, time):
-        self.mean = temp
-        self.process_time = time
+
+
+    def ModifyFurnaceVariable(self, count, temp, heattime, staytime, gas):
+        totaltime = 0
+        self.tempers = temp
+        
+        self.heattimes.clear()
+        self.staytimes.clear()
+
+        self.heattimes.append(heattime[0])
+        self.staytimes.append(self.heattimes[0] + staytime[0])
+        totaltime += heattime[0]
+        totaltime += staytime[0]
+        for i in range(1, count):
+            self.heattimes.append(self.staytimes[-1] + heattime[i])
+            self.staytimes.append(self.heattimes[-1] + staytime[i])
+            totaltime += heattime[i]
+            totaltime += staytime[i]  
+            
+        self.process_time = totaltime
+        self.sb = 2
+        self.gas = gas
 
     def clear_setting(self):
         self.index = 0
         self.heattimes.clear()
         self.staytimes.clear()
         self.tempers = None
+        self.inclination = None
 
-furnace = Furnace('165.246.44.133', 3050, sys.argv[1])
+        self.mean = 0
+        self.sb = None
+        self.start_time = None
+        self.process_time = None
+        self.current_time = None
+        self.gas = None
+
+#165.246.44.133
+furnace = Furnace('127.0.0.1', 3050, sys.argv[1])
 furnace.connect()
 while True:
     furnace.clear_setting()

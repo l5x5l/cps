@@ -22,12 +22,12 @@ class SensorPlotCanvas(FigureCanvas):
     def __init__(self, parent = None, width = 5, height = 4, dpi = 100):
         self.fig = Figure()
 
-        self.temp1 = self.fig.add_subplot(421, xlim=(0, 50), ylim=(0, 1024))
-        self.temp2 = self.fig.add_subplot(422, xlim=(0, 50), ylim=(0, 1024))
-        self.temp3 = self.fig.add_subplot(423, xlim=(0, 50), ylim=(0, 1024))
-        self.temp4 = self.fig.add_subplot(424, xlim=(0, 50), ylim=(0, 1024))
-        self.temp5 = self.fig.add_subplot(425, xlim=(0, 50), ylim=(0, 1024))
-        self.temp6 = self.fig.add_subplot(426, xlim=(0, 50), ylim=(0, 1024))
+        self.temp1 = self.fig.add_subplot(421, xlim=(0, 50), ylim=(0, 1500))
+        self.temp2 = self.fig.add_subplot(422, xlim=(0, 50), ylim=(0, 1500))
+        self.temp3 = self.fig.add_subplot(423, xlim=(0, 50), ylim=(0, 1500))
+        self.temp4 = self.fig.add_subplot(424, xlim=(0, 50), ylim=(0, 1500))
+        self.temp5 = self.fig.add_subplot(425, xlim=(0, 50), ylim=(0, 1500))
+        self.temp6 = self.fig.add_subplot(426, xlim=(0, 50), ylim=(0, 1500))
         self.flow = self.fig.add_subplot(427, xlim=(0, 50), ylim=(0, 100))
         self.press = self.fig.add_subplot(428, xlim=(0, 50), ylim=(0, 100))
 
@@ -216,7 +216,7 @@ class FurnaceContent(QWidget):
         self.initUI()
 
     def initUI(self):
-        self.layout = QHBoxLayout()
+        self.main_layout = QHBoxLayout()
 
         self.detail_disable = []
         self.detail_able = []
@@ -294,6 +294,7 @@ class FurnaceContent(QWidget):
         base_area.itemAt(3).widget().clicked.connect(lambda:set_base_button.button_click(str(material_opt.currentText()), str(process_opt.currentText()), str(amount_opt.currentText()), self.sock))
         #add click event to set_detail_button
         detail_area.itemAt(2).itemAt(0).widget().clicked.connect(lambda:set_detail_button.button_click(str(gas_opt.currentText()), self.temp_list, self.heattime_list, self.staytime_list,self.sock))
+        detail_area.itemAt(2).itemAt(0).widget().clicked.connect(self.SetStartTime)
         #add click event to end_process_button
         detail_area.itemAt(2).itemAt(1).widget().clicked.connect(self.stop_button_click)
 
@@ -301,8 +302,8 @@ class FurnaceContent(QWidget):
         self.right_area.addLayout(detail_area,2)
 
         #concat
-        self.layout.addWidget(self.sensor_area,3)
-        self.layout.addLayout(self.right_area, 1)
+        self.main_layout.addWidget(self.sensor_area,3)
+        self.main_layout.addLayout(self.right_area, 1)
 
         #초기 실행시 세부설정을 불가능하게
         for widget in self.base_disable:
@@ -310,7 +311,7 @@ class FurnaceContent(QWidget):
         for widget in self.detail_disable:
             widget.setEnabled(False)
 
-        self.setLayout(self.layout)
+        self.setLayout(self.main_layout)
 
 
     def apply_exist_process(self, process_setting, sensors, start_time):
@@ -321,7 +322,6 @@ class FurnaceContent(QWidget):
         start_time(str) : start time, form is HHMMSS
         """
         self.process_start_time = utils.change_current_to_seconds(start_time)
-        print(f'testline in furnace_content 324 {self.process_start_time}')
 
         self.process_id, material, amount, process, count = process_setting[:5]
         temp_list, heattime_list, staytime_list = process_setting[5:5+count], process_setting[15:15+count], process_setting[25:25+count]
@@ -380,8 +380,8 @@ class FurnaceContent(QWidget):
         btn_end_process = self.right_area.itemAt(1).itemAt(2).itemAt(1).widget()
         btn_detail_modi.setEnabled(True)
         btn_end_process.setEnabled(True)
-        btn_base_modi.custom_toggle()
-        btn_detail_modi.custom_toggle()
+        btn_base_modi.set_state_fix()
+        btn_detail_modi.set_state_fix()
         
 
     def set_detail_temp_time_click(self):
@@ -418,6 +418,11 @@ class FurnaceContent(QWidget):
         self.clear_UI()
 
         self.sock.sendall(b'end')
+
+    def SetStartTime(self):
+        if not self.process_start_time:
+            temp = utils.make_current()
+            self.process_start_time = utils.change_current_to_seconds(temp)
 
 
 class SubWindow(QDialog):
@@ -552,6 +557,7 @@ class SubWindow(QDialog):
         self.reject()
 
     def showModel(self, start_time = None):
+
         if start_time:
             time_list = [0]
 
@@ -562,7 +568,7 @@ class SubWindow(QDialog):
             now = utils.make_current()
             now = utils.change_current_to_seconds(now)
             diff = int(now) - int(start_time)
-
+ 
             count = self.setting_area.count()
             for i in range(count):
                 if time_list[i*2] <= diff:
@@ -571,6 +577,14 @@ class SubWindow(QDialog):
                     self.setting_area.itemAt(i).itemAt(2).widget().setEnabled(False)
                     self.setting_area.itemAt(i).itemAt(3).widget().setEnabled(False)
             
+        else:
+            target_layout = self.setting_area
+            for i in reversed(range(target_layout.count())):
+                target_row = target_layout.itemAt(i)
+                for j in reversed(range(target_row.count())):
+                    target_layout.itemAt(i).itemAt(j).widget().setParent(None)
+                target_layout.removeItem(target_row)
+            target_layout.addLayout(self.setting_row())
         return super().exec_()
         
 

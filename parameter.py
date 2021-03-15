@@ -1,4 +1,4 @@
-host='165.246.44.133' 
+host='127.0.0.1' 
 user='root'
 password='13130132'
 db = 'cps'
@@ -14,6 +14,7 @@ width = 1000
 
 #button에 넣을 문자열들
 decision_str = "결정"
+restart_str = "재시작"
 modify_str = "수정"
 add_str = '추가'
 del_str = '삭제'

@@ -102,17 +102,21 @@ class Detail_Button(QPushButton):
         self.setText(self.texts[self.now_start_button])
         self.base_opt = 'detail_fix'
 
+        self.is_process_wokring = True
+
     def custom_toggle(self):
         self.now_start_button = not self.now_start_button
         self.setStyleSheet("background-color: %s" % (self.colors[self.now_start_button]))
         self.setText(self.texts[self.now_start_button])
 
+        ##test function (add base_opt = 'restart')
         if self.now_start_button:
-            # if self.is_process_wokring:
-            #      self.base_opt = 'modify_process'
-            # else:
-            self.base_opt = 'detail'
+            if self.is_process_wokring:
+                self.base_opt = 'restart'
+            else:
+                self.base_opt = 'detail'
         else:
+            self.is_process_wokring = True
             self.base_opt = 'detail_fix'
 
     def set_change_widget_list(self, disable_list, able_list):

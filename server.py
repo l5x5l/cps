@@ -8,15 +8,15 @@ import parameter
 from device import Device
 
 class Server(Device):
-    def __init__(self, addr:str, port:int, total_furncae:int, maximum:int):
+    def __init__(self, addr:str, port:int, total_furnace:int, maximum:int):
         print('[server] setup server')
         self.addr = addr
         self.port = port
         self.serv_addr = (self.addr, self.port)
-        self.datas = data.Datas(total_furncae)
+        self.datas = data.Datas(total_furnace)
         self.q = []
         
-        for i in range(parameter.total_furnace):
+        for i in range(total_furnace):
             self.q.append([])
 
         self.lock = threading.Lock()
@@ -56,7 +56,7 @@ class Server(Device):
 
 
 
-serv = Server('165.246.44.133', 3050, parameter.total_furnace, 10)
+serv = Server(parameter.host, parameter.port, parameter.total_furnace, parameter.maximum_client)
 while True:
     conn_sock, confirm_msg = serv.connect()
     serv.start_thread(conn_sock, confirm_msg)

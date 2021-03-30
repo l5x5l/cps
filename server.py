@@ -19,7 +19,10 @@ class Server(Device):
         for i in range(total_furnace):
             self.q.append([])
 
-        self.lock = threading.Lock()
+        self.lock = []
+
+        for i in range(parameter.total_furnace):
+            self.lock.append(threading.Lock())
 
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.sock.bind(self.serv_addr)
@@ -47,13 +50,12 @@ class Server(Device):
             number = int(confirm[1])    #furnace number
             self.datas.on_furnace_data(number)
             dbconn = self.connect_db(parameter.user, parameter.password, parameter.db, parameter.charset)
-            t = threading.Thread(target=thread.server_furnace, args=(conn_sock, number, self.datas, self.q[number - 1], dbconn, self.lock))
+            t = threading.Thread(target=thread.server_furnace, args=(conn_sock, number, self.datas, self.q[number - 1], dbconn, self.lock[number - 1]))
             t.start()
         elif confirm[0] == 'client':
             dbconn = self.connect_db(parameter.user, parameter.password, parameter.db, parameter.charset)
             t = threading.Thread(target=thread.server_client, args=(conn_sock, self.datas, self.q, dbconn, self.lock))
             t.start()
-
 
 
 serv = Server(parameter.host, parameter.port, parameter.total_furnace, parameter.maximum_client)

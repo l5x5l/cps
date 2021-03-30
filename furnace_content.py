@@ -42,11 +42,11 @@ class SensorPlotCanvas(FigureCanvas):
 
 class SensorPlot(QWidget):
     """
-    layout which represents sensor values in plot and table
+    센서값을 사용하는 부분
 
     base_box : main layout of SensorPlot
-    left_area : represents 8 sensor value on plot form
-    middle_area : represents 4 sensor value on table form 
+    left_area : 센서값 8개를 그래프로 표시하는 부분
+    middle_area : 열처리로 이미지와 센서값을 수치상으로 표현하는 부분으로 구성
     """
     def __init__(self):
         QMainWindow.__init__(self)
@@ -232,10 +232,10 @@ class FurnaceContent(QWidget):
         self.base_disable = []
         self.base_able = []
 
-        #sensor area : sensor data (temp1~6, flow, press)
+        #sensor area : 센서값과 열처리로 이미지를 표현하는 부분(전체 화면에서 왼쪽-중간 부분)
         self.sensor_area = SensorPlot()
 
-        #right_area : select base element and detail element
+        #right_area : 공정 세부사항 결정하는 부분 (전체 화면에서 오른쪽 부분)
         self.right_area = QVBoxLayout()
         
         state_text = QLabel()

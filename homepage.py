@@ -38,7 +38,7 @@ class Select(QWidget):
             furnace_buttons[i].clicked.connect(lambda checked, index=i:self.furnace_button_click(index+1))
             self.furnace_area.addWidget(furnace_buttons[i], i // 2, i % 2)  
 
-        #except setting area, which content is plot or furnace select
+        #except setting area
         self.layout.addWidget(self.image_area)
         self.layout.addLayout(self.furnace_area)
         self.setLayout(self.layout)
@@ -218,12 +218,13 @@ def monitoring(dbconn, furnace_pages, working_process = []):
                     dbcur.execute(sql)
                     result = dbcur.fetchall()
                     now_working_process[i] = processes[i]   
-                    furnace_pages[i].sensor_area.clear()
+                    #furnace_pages[i].sensor_area.clear()
                     if result[0][0] == 0:
                         furnace_pages[i].stop_process_nature()
 
 
             if now_working_process[i] == '-' and processes[i] != '-':   # 공정이 새로 시작된 경우
+                furnace_pages[i].sensor_area.clear()
                 now_working_process[i] = processes[i]
 
             sql = """select * from furnace""" + str(i+1) +  """ where id = '""" + now_working_process[i] + """' order by current desc limit 1"""
@@ -241,14 +242,3 @@ def monitoring(dbconn, furnace_pages, working_process = []):
 
     dbcur.close()
 
-
-#for testing UI
-if __name__ == "__main__":
-    #C = client.Client(parameter.host, parameter.port)
-    #C.connect()
-
-    app = QApplication(sys.argv)
-    form = HomePage()
-    form.show()
-
-    sys.exit(app.exec_())

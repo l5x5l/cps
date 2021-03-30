@@ -12,7 +12,6 @@ def packet_detail_setting(count:int, tempers:list, heattimes:list, staytimes:lis
     temp_byte = temp_str.encode()
     return temp_byte
 
-##UI_custom에 있는 방식으로 교체 필요, 일단 아직은 안함
 ## + 추가적으로, None값을 전달하는 방식으로 mariadb에 null값을 넣을 수 있다.
 
 

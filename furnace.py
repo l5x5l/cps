@@ -8,8 +8,6 @@ import sys
 import datetime
 import atexit
 
-
-
 class Furnace(Device):
     def __init__(self, host, port, number):
         """
@@ -117,18 +115,17 @@ class Furnace(Device):
                 print('furnace.py 112 line, end signal recv')
                 break 
 
-            elif signal == 'fix signal':    #need to fix
+            elif signal == 'fix signal':    
                 print('furnace.py 116 line, fix singal recv')
                 self.send_msg('fix confirm', self.sock)
                 self.ModifyProcess()
-
+   
             touch, temp1, temp2, temp3, temp4, temp5, temp6, flow, press, isLast = self.get_sensors()
             send_pkt = packet_sensor(touch, temp1, temp2, temp3, temp4, temp5, temp6, flow, press, isLast)
             self.send_msg(send_pkt, self.sock)
 
             if isLast == 'True':
                 break
-
 
             self.current_time = int((datetime.datetime.now() - self.start_time).total_seconds())
 

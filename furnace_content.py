@@ -133,7 +133,6 @@ class SensorPlot(QWidget):
 
         for index, _ in enumerate(self.line):
             y = int(datas[index + 3])
-            #y = random.randint(0,1024)
             old_y = self.line[index].get_ydata()
             new_y = np.r_[old_y[1:], y]
             self.line[index].set_ydata(new_y)
@@ -180,9 +179,16 @@ class SettingPlot(QWidget):
         self.setLayout(self.base_box)
         self.canvas.draw()
 
-    def update(self, x, y):
+    def update(self, x, y, start_time = None):
+        #print(f'testline in furance content 183 {start_time}')
+
         self.canvas.ax.set_xlim(0, x[-1])
         self.canvas.ax.set_ylim(0, max(y) + 200)
+        # if start_time:
+        #     now = utils.make_current()
+        #     now = utils.change_current_to_seconds(now)
+        #     diff = now - int(start_time)
+        #     self.canvas.ax.axvline(x = diff, color = 'red')
         self.plot.set_ydata(y)
         self.plot.set_xdata(x)
         self.canvas.draw()
@@ -211,6 +217,7 @@ class FurnaceContent(QWidget):
         self.combobox_opt = combo_opt
 
         self.process_id = None
+        #self.process_total_time = None  #add
         self.process_start_time = None
         self.heattime_list = []
         self.staytime_list = []
@@ -331,6 +338,8 @@ class FurnaceContent(QWidget):
         temp_list, heattime_list, staytime_list = process_setting[5:5+count], process_setting[15:15+count], process_setting[25:25+count]
         gas = process_setting[-2]
 
+        #self.process_total_time = utils.get_total_time(heattime_list, staytime_list)    #add
+
         number = self.process_id[:2]
 
         temp_list = list(map(str, temp_list))
@@ -400,13 +409,16 @@ class FurnaceContent(QWidget):
                 heattime_list.append(win.setting_area.itemAt(i).itemAt(1).widget().text())
                 staytime_list.append(win.setting_area.itemAt(i).itemAt(2).widget().text())
 
+            #self.process_total_time = utils.get_total_time(heattime_list, staytime_list)    #add
             self.heattime_list = heattime_list
             self.staytime_list = staytime_list
             self.temp_list = temp_list
-            
+
+
     def clear_UI(self):
         self.process_start_time = None
-
+        #self.process_total_time = None
+    
         for elem in self.base_disable:
             elem.setEnabled(False) 
         for elem in self.detail_disable:
@@ -438,8 +450,9 @@ class FurnaceContent(QWidget):
             self.sensor_area.middle_area.itemAt(0).widget().setText(f"furnace{self.number} is on")
         elif state == 'working':
             self.process_id = process_id
-            self.sensor_area.middle_area.itemAt(0).widget().setText(f"furnace{self.number} is working : {self.process_id}")
+            self.sensor_area.middle_area.itemAt(0).widget().setText(f"furnace{self.number} is working : {self.process_id}\n")
         elif state == '-':
+            self.clear_UI()
             self.sensor_area.middle_area.itemAt(0).widget().setText(f"furnace{self.number} is off")
         else:
             self.sensor_area.middle_area.itemAt(0).widget().setText(f"unknown state {state}")
@@ -457,6 +470,8 @@ class SubWindow(QDialog):
         self.setWindowTitle('Sub Window')
         self.setGeometry(100, 100, 800, 400)
 
+        self.process_start_time = None
+
         #total popup page layout
         self.layout = QHBoxLayout()
 
@@ -464,7 +479,7 @@ class SubWindow(QDialog):
         self.graph_area = QVBoxLayout()
         self.setting_graph = SettingPlot()
         btn_graph_renew = QPushButton(parameter.show_temper_time_str)
-        btn_graph_renew.clicked.connect(self.Renewbutton_click)
+        btn_graph_renew.clicked.connect(self.RenewGraph)
         self.graph_area.addWidget(self.setting_graph, 9)
         self.graph_area.addWidget(btn_graph_renew, 1)
         
@@ -540,7 +555,7 @@ class SubWindow(QDialog):
                 self.setting_area.itemAt(i).itemAt(2).widget().setText(staytimes[i])
             else:
                 self.setting_area.addLayout(self.CreateSettingRow(tempers[i], heattimes[i], staytimes[i]))
-        self.Renewbutton_click()
+        self.RenewGraph()
 
 
     def Addbutton_click(self):
@@ -556,30 +571,25 @@ class SubWindow(QDialog):
                 widget.itemAt(i).widget().setParent(None)
             self.setting_area.removeItem(widget)
 
-    def Renewbutton_click(self):
+    def RenewGraph(self):
         time_list = [0]
         temp_list = [0]
         
-        for i in range(self.setting_area.count()):   #change start point 0 to 1
+        for i in range(self.setting_area.count()):   
             target = self.setting_area.itemAt(i)
             temp_list.append(int(target.itemAt(0).widget().text()))
             temp_list.append(int(target.itemAt(0).widget().text()))
             time_list.append(time_list[-1] + int(target.itemAt(1).widget().text()))
             time_list.append(time_list[-1] + int(target.itemAt(2).widget().text()))
 
-        self.setting_graph.update(time_list, temp_list)
+        self.setting_graph.update(time_list, temp_list, self.process_start_time)
         
-    def OKbutton_click(self):
-        self.accept()
-
-    def Cancelbutton_click(self):
-        self.reject()
 
     def showModel(self, start_time = None):
 
         if start_time:
             time_list = [0]
-
+            self.update_start_time(start_time)  #add
             for i in range(self.setting_area.count()):
                 target = self.setting_area.itemAt(i)
                 time_list.append(time_list[-1] + int(target.itemAt(1).widget().text()))
@@ -595,8 +605,9 @@ class SubWindow(QDialog):
                     self.setting_area.itemAt(i).itemAt(1).widget().setEnabled(False)
                     self.setting_area.itemAt(i).itemAt(2).widget().setEnabled(False)
                     self.setting_area.itemAt(i).itemAt(3).widget().setEnabled(False)
-            
+
         else:
+            self.process_start_time = None  #add
             target_layout = self.setting_area
             for i in reversed(range(target_layout.count())):
                 target_row = target_layout.itemAt(i)
@@ -606,6 +617,14 @@ class SubWindow(QDialog):
             target_layout.addLayout(self.CreateSettingRow())
         return super().exec_()
         
+    def update_start_time(self, start_time):
+        self.process_start_time = start_time
+
+    def OKbutton_click(self):
+        self.accept()
+
+    def Cancelbutton_click(self):
+        self.reject()
 
 
 if __name__ == "__main__":

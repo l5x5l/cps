@@ -116,7 +116,7 @@ class Furnace(Device):
             if signal == 'end signal':
                 print('furnace.py 112 line, end signal recv')
                 break 
-                #self.close()
+
             elif signal == 'fix signal':    #need to fix
                 print('furnace.py 116 line, fix singal recv')
                 self.send_msg('fix confirm', self.sock)
@@ -128,7 +128,7 @@ class Furnace(Device):
 
             if isLast == 'True':
                 break
-                #self.close()
+
 
             self.current_time = int((datetime.datetime.now() - self.start_time).total_seconds())
 

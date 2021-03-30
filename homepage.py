@@ -204,6 +204,8 @@ def monitoring(dbconn, furnace_pages, working_process = []):
 
     # 프로그램 실행 후, 진행중인 공정에 대한 센서값 업데이트
     while True:
+
+        checkpoint = time.time()    #test
         dbconn.commit()
         processes = get_working_process(dbcur)
         for i in range(len(processes)):
@@ -234,7 +236,8 @@ def monitoring(dbconn, furnace_pages, working_process = []):
             
             sensors = list(sensors[0])
             furnace_pages[i].sensor_area.update(sensors)
-        time.sleep(parameter.time_interval)
+
+        time.sleep(parameter.time_interval - (time.time() - checkpoint))    #test 
 
     dbcur.close()
 

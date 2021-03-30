@@ -3,10 +3,6 @@ def packet_sensor(touch:str, temp1:int, temp2:int, temp3:int, temp4:int, temp5:i
     temp_byte = temp_str.encode()
     return temp_byte
 
-def packet_fix(temper:int, time:int):
-    temp_str = 'fix {0} {1}'.format(str(temper), str(time))
-    temp_byte = temp_str.encode()
-    return temp_byte
 
 def packet_detail_setting(count:int, tempers:list, heattimes:list, staytimes:list, gas:str):
     temp = '_'.join(tempers)
@@ -31,9 +27,6 @@ def read_packet(packet):
     if packet[0] == 'sen':
         touch, temp1, temp2, temp3, temp4, temp5, temp6, flow, press, last = packet[1:]
         return touch, int(temp1), int(temp2), int(temp3), int(temp4), int(temp5), int(temp6), int(flow), int(press), last
-    elif packet[0] == 'fix':
-        temper, time = packet[1:]
-        return int(temper), int(time)
     elif packet[0] == 'ds':
         print(packet[1:])
         count, temp, heattime, staytime, gas = packet[1:]

@@ -37,6 +37,12 @@ def server_furnace(sock:socket.socket, number:int, datas:Datas, q:list, dbconn, 
     index = number - 1
     time_interval = parameter.time_interval
 
+    str_number = '{:02d}'.format(int(number))
+    #print(str_number)
+    sql = f"""UPDATE process SET output = 3 where output is Null and id like '{str_number}%'"""
+    dbcur.execute(sql)
+    dbconn.commit()
+
     while True: #add while
         #wait until recv process operation order
         while datas.datas[index]['state'] == 'on':
@@ -178,7 +184,6 @@ def server_client(sock:socket.socket, datas:Datas, q:list, dbconn, lock):
             sock.sendall(parameter.success_str.encode())
         elif recv_msg_list[0] == 'num':     #when furnace button is clicked
             #[message example] num 1 -> select furnace1
-            #if temp is None:
             number = int(recv_msg_list[1])
             temp = order_list[number - 1]
 
@@ -188,25 +193,16 @@ def server_client(sock:socket.socket, datas:Datas, q:list, dbconn, lock):
             lock.release()
 
             sock.sendall((state + ' ' + process).encode())
-            # else:
-            #     sock.sendall((parameter.error_str + '_num').encode())
         elif recv_msg_list[0] == 'base':    #when base setting button is clicked
             temp.clear()
             base_element = recv_msg_list[1:]
             temp.append(base_element)
             sock.sendall(parameter.success_str.encode())
-            # else:
-            #     print(f'testline in thread 201, {temp}')
-            #     sock.sendall((parameter.error_str + '_base').encode())
         elif recv_msg_list[0] == 'base_fix':    #when base modify button is clicked
-            #if temp is not None and len(temp) == 1:
             prev_base = temp[-1]
             temp.pop()
             sock.sendall(parameter.success_str.encode())
-            # else:
-            #     sock.sendall((parameter.error_str + '_base_fix').encode())
         elif recv_msg_list[0] == 'detail':  #when datail setting button is clicked
-            #if temp is not None and len(temp) == 1:
             detail_element = recv_msg_list[1:]
             temp.append(detail_element)
 
@@ -220,20 +216,15 @@ def server_client(sock:socket.socket, datas:Datas, q:list, dbconn, lock):
             lock.release()
 
             sock.sendall(parameter.success_str.encode())
-            # else:
-            #     sock.sendall((parameter.error_str + '_detail').encode())
         elif recv_msg_list[0] == 'detail_fix':  #when detail modify button is clicked
             #if temp is not None and len(temp) == 2:
             prev_detail = temp[-1]
             temp.pop()
             sock.sendall(parameter.success_str.encode())
-            # else:
-            #     sock.sendall((parameter.error_str + '_detail_fix').encode())
         elif recv_msg_list[0] == 'restart':    #when after detail setting is changed, datail button is clicked (send modified detail setting about exists process)
-            #if temp is not None and len(temp) == 1:
             detail_element = recv_msg_list[1:]
             temp.append(detail_element)
-            #이제 q에 입력해야 한다.
+ 
             q_msg = [str(number), 'fix', process_id] + temp[0] + temp[1]
 
             lock.acquire()

@@ -1,10 +1,7 @@
 import socket
 from device import Device
-import parameter
 from packet import *
-import time as t
-import threading
-import thread
+
 
 class Client(Device):
     def __init__(self, host:str, port:int):

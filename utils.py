@@ -51,3 +51,10 @@ def extract_detail_option(elem:list):
     gas = elem[-1]
 
     return recv_process_id, mete, manu, inp, count, temp_list, heattime_list, staytime_list, gas
+
+def get_total_time(heattimes, staytimes):
+    total_time = 0
+    for i in range(len(heattimes)):
+        total_time += int(heattimes[i])
+        total_time += int(staytimes[i])
+    return total_time

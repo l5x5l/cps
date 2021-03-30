@@ -11,20 +11,20 @@ import atexit
 class Furnace(Device):
     def __init__(self, host, port, number):
         """
-        가상으로 구현한 열처리로, 실제 열처리로와 매우 큰 차이가 있을 수 있음
+        가상으로 구현한 열처리로, 실제 열처리로와 매우 큰 차이가 있을 수 있음\n
 
-        number : furnace number
-        index : used for setting sensor's temperature
-        tempers : temperature list
-        heattimes : 승온 시간들
-        staytimes : 현 온도를 유지하는 시간들
-        mean : 가상의 센서값을 만들 때 사용 (평균)
-        sd : 가상의 센서값을 만들 때 사용 (표준편차)
-        inclication : 가상의 센서값을 만들 때 사용, 승온시 온도의 상승폭을 나타냄
-        start_time : 공정의 시작 시간
-        process_time : 공정의 총 시간
-        current_time : 공정의 현 시간
-        gas : 공정에 사용되는 가스의 종류
+        number : 열처리로 번호\n
+        index : 열처리로 내에서 온도 조정시 사용\n
+        tempers : 온도 리스트\n
+        heattimes : 승온 시간들\n
+        staytimes : 현 온도를 유지하는 시간들\n
+        mean : 가상의 센서값을 만들 때 사용 (평균)\n
+        sd : 가상의 센서값을 만들 때 사용 (표준편차)\n
+        inclication : 가상의 센서값을 만들 때 사용, 승온시 온도의 상승폭을 나타냄\n
+        start_time : 공정의 시작 시간\n
+        process_time : 공정의 총 시간\n
+        current_time : 공정의 현 시간\n
+        gas : 공정에 사용되는 가스의 종류\n
         """
         self.number = number
         self.host = host
@@ -89,14 +89,6 @@ class Furnace(Device):
 
         flow = int(random.gauss(70, 2))
         press = int(random.gauss(70, 2))
-        '''
-        except Exception as e:
-            print('[furnace] error ', e)
-            return
-        '''
-        
-        #print('[furnace] test line 49')
-        #print(str(self.process_time) + ' : ' + str(self.current_time))
 
         if self.process_time <= self.current_time:
             isLast = 'True'
@@ -124,7 +116,7 @@ class Furnace(Device):
             send_pkt = packet_sensor(touch, temp1, temp2, temp3, temp4, temp5, temp6, flow, press, isLast)
             self.send_msg(send_pkt, self.sock)
 
-            if isLast == 'True':
+            if isLast == 'True':    #공정 시간 만료로 인한 마지막 센서값인 경우
                 break
 
             self.current_time = int((datetime.datetime.now() - self.start_time).total_seconds())
@@ -137,6 +129,7 @@ class Furnace(Device):
         count, temp, heattime, staytime, gas = read_packet(recv_pkt)
         
         self.SetFurnaceVariable(count, temp, heattime, staytime, gas)
+        self.send_msg(self.start_time.strftime("%m/%d/%y %H:%M:%S"), self.sock)  #add
 
 
     def ModifyProcess(self):   #need to fix
@@ -161,7 +154,7 @@ class Furnace(Device):
             
         self.process_time = totaltime
         self.current_time = 0
-        self.start_time = datetime.datetime.now()
+        self.start_time = datetime.datetime.now().replace(microsecond=0)
         self.sb = 2
         self.gas = gas
         

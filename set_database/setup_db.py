@@ -16,7 +16,8 @@ except:
 
 
 
-sql =  """CREATE TABLE Process(id CHAR(13) PRIMARY KEY, material VARCHAR(20), amount INT, manufacture VARCHAR(20), count INT, temper1 INT, temper2 INT, temper3 INT, temper4 INT, temper5 INT, temper6 INT, temper7 INT, temper8 INT, temper9 INT, temper10 INT, heattime1 INT, heattime2 INT, heattime3 INT, heattime4 INT, heattime5 INT, heattime6 INT, heattime7 INT, heattime8 INT, heattime9 INT, heattime10 INT, staytime1 INT, staytime2 INT, staytime3 INT, staytime4 INT, staytime5 INT, staytime6 INT, staytime7 INT, staytime8 INT, staytime9 INT, staytime10 INT, gas VARCHAR(20), output INT)"""
+#sql =  """CREATE TABLE Process(id CHAR(13) PRIMARY KEY, material VARCHAR(20), amount INT, manufacture VARCHAR(20), count INT, temper1 INT, temper2 INT, temper3 INT, temper4 INT, temper5 INT, temper6 INT, temper7 INT, temper8 INT, temper9 INT, temper10 INT, heattime1 INT, heattime2 INT, heattime3 INT, heattime4 INT, heattime5 INT, heattime6 INT, heattime7 INT, heattime8 INT, heattime9 INT, heattime10 INT, staytime1 INT, staytime2 INT, staytime3 INT, staytime4 INT, staytime5 INT, staytime6 INT, staytime7 INT, staytime8 INT, staytime9 INT, staytime10 INT, gas VARCHAR(20), output INT)"""
+sql =  """CREATE TABLE Process(id CHAR(13) PRIMARY KEY, material VARCHAR(20), amount INT, manufacture VARCHAR(20), count INT, temper1 INT, temper2 INT, temper3 INT, temper4 INT, temper5 INT, temper6 INT, temper7 INT, temper8 INT, temper9 INT, temper10 INT, heattime1 INT, heattime2 INT, heattime3 INT, heattime4 INT, heattime5 INT, heattime6 INT, heattime7 INT, heattime8 INT, heattime9 INT, heattime10 INT, staytime1 INT, staytime2 INT, staytime3 INT, staytime4 INT, staytime5 INT, staytime6 INT, staytime7 INT, staytime8 INT, staytime9 INT, staytime10 INT, gas VARCHAR(20), starttime CHAR(17), output INT)"""
 dbcur.execute(sql)
 
 for i in range(total_furnace):

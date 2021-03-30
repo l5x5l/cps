@@ -7,26 +7,26 @@ class Datas:
         self.datas = []
         self.total = total_furncae
         for i in range(self.total):
-            self.datas.append({'state':'-', 'process':'-'})
+            self.datas.append({'state':'-', 'process':'-', "start_time":'-'})
     
 
     def close_furnace_data(self, number:int):
         index = number - 1
         self.datas[index]['state'] = '-'
         self.datas[index]['process'] = '-'
-
+        self.datas[index]['start_time'] = '-'
 
     def on_furnace_data(self, number:int):
         index = number - 1
         self.datas[index]['state'] = 'on'
         self.datas[index]['process'] = '-'
-        
+        self.datas[index]['start_time'] = '-'
 
-    def working_furnace_data(self, number:int, process_id:str):
+    def working_furnace_data(self, number:int, process_id:str, start_time:str):
         index = number - 1
         self.datas[index]['state'] = 'working'
         self.datas[index]['process']  = process_id
-        
+        self.datas[index]['start_time'] = start_time
     
     def check_furnace(self, number:int, option:str):
         index = number - 1

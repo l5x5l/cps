@@ -200,7 +200,8 @@ class FurnaceContent(QWidget):
     """
     stacked page which represents furnace's state
 
-    setting_popup = detail temperature and time setting popup page
+    setting_popup = 
+     temperature and time setting popup page
 
     number = furnace number
     sock = socket (used when communicate with server)
@@ -325,18 +326,19 @@ class FurnaceContent(QWidget):
         self.setLayout(self.main_layout)
 
 
-    def apply_exist_process(self, process_setting, sensors, start_time):
+    def apply_exist_process(self, process_setting, sensors, start_time):    #아직 starttime 반영 안함
         """
         when pyqt5 process is starting, reading information of exists ongoing process
 
-        process_setting's format =  [process_id, material, amount, process, count, temp_list, heattime, staytime, gas, output]
-        start_time(str) : start time, form is HHMMSS
+        process_setting's format =  [process_id, material, amount, process, count, temp_list, heattime, staytime, gas, starttime, output]
+        start_time(str) : start time, form is "mm/dd/yy HH:MM:SS"
         """
-        self.process_start_time = utils.change_current_to_seconds(start_time)
+        self.process_start_time = start_time
 
         self.process_id, material, amount, process, count = process_setting[:5]
         temp_list, heattime_list, staytime_list = process_setting[5:5+count], process_setting[15:15+count], process_setting[25:25+count]
-        gas = process_setting[-2]
+        gas = process_setting[-3]
+        
 
         #self.process_total_time = utils.get_total_time(heattime_list, staytime_list)    #add
 
@@ -432,7 +434,6 @@ class FurnaceContent(QWidget):
 
     def stop_button_click(self):
         self.clear_UI()
-        print('testline in furance_contetn 423, stop_button click')
         self.sock.sendall(b'end')
         self.sock.recv(1024)    #add this
 
@@ -440,7 +441,7 @@ class FurnaceContent(QWidget):
         self.clear_UI()
         
 
-    def SetStartTime(self):
+    def SetStartTime(self): #이 부분 수정 필요, process_start_time을 직접 설정하는 것이 아니라 server에 요청해서 가져오도록
         if not self.process_start_time:
             temp = utils.make_current()
             self.process_start_time = utils.change_current_to_seconds(temp)

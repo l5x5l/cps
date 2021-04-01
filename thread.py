@@ -48,6 +48,7 @@ def server_furnace(sock:socket.socket, number:int, datas:Datas, q:list, dbconn, 
     end_flag = False
     index = number - 1
     time_interval = parameter.time_interval
+    process_start_time = None
 
     str_number = '{:02d}'.format(int(number))
     sql = f"""UPDATE process SET output = 3 where output is Null and id like '{str_number}%'"""
@@ -78,15 +79,15 @@ def server_furnace(sock:socket.socket, number:int, datas:Datas, q:list, dbconn, 
 
                     send_pkt = packet_detail_setting(count, elem[7:7+count], elem[7 + count : 7 + (2 * count)], elem[7 + (2 * count) : 7 + (3 * count)], gas)
                     sock.sendall(send_pkt)
-                    temp_start_time = sock.recv(1024).decode() #start_time of process
+                    process_start_time = sock.recv(1024).decode() # "%m/%d/%y %H:%M:%S" 형식을 가진 start time
 
                     sql = "UPDATE process SET starttime = %s WHERE id = %s"
-                    val = (temp_start_time, process_id)
+                    val = (process_start_time, process_id)
                     dbcur.execute(sql, val)
                     dbconn.commit()
 
                     lock.acquire()
-                    datas.working_furnace_data(number, process_id, temp_start_time) 
+                    datas.working_furnace_data(number, process_id, process_start_time) 
                     q.remove(elem)
                     lock.release()
                     break
@@ -95,9 +96,9 @@ def server_furnace(sock:socket.socket, number:int, datas:Datas, q:list, dbconn, 
                     lock.acquire()
                     q.remove(elem)
                     lock.release()
-            t.sleep(time_interval)
+            
 
-        #after furnace starts process
+        #공정이 시작된 이후 부분(공정수정/공정중지 메세지를 송신, 센서값 수신)
         while True:
             no_signal = True
             end_flag = False
@@ -147,10 +148,9 @@ def server_furnace(sock:socket.socket, number:int, datas:Datas, q:list, dbconn, 
             
             pkt = sock.recv(1024)   #센서값 수신
     
-            touch, temp1, temp2, temp3, temp4, temp5, temp6, flow, press, last = read_packet(pkt)
+            current_time, touch, temp1, temp2, temp3, temp4, temp5, temp6, flow, press, last = read_packet(pkt)
 
-            #create current value which represent current time
-            current_time = utils.make_current()
+            # current_time = utils.make_current() 과거
 
             #센서값을 데이터베이스에 저장
             sql = """INSERT INTO furnace%s(current, id, touch, temp1, temp2, temp3, temp4, temp5, temp6, flow, press) VALUES(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"""
@@ -271,6 +271,8 @@ def server_client(sock:socket.socket, datas:Datas, q:list, dbconn, lock):
             temp = None
 
             sock.sendall(parameter.success_str.encode())
+        elif recv_msg_list[0] == "starttime":   # 공정의 시작 시간 요청
+            pass
         else:      #그 외 이상한 명령이 수신된 경우
             sock.sendall((parameter.error_str + '_wrong msg type' + recv_msg_list[0]).encode())
     sock.close()

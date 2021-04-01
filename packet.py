@@ -1,5 +1,5 @@
-def packet_sensor(touch:str, temp1:int, temp2:int, temp3:int, temp4:int, temp5:int, temp6:int, flow:int, press:int, last:str):
-    temp_str = 'sen {0} {1} {2} {3} {4} {5} {6} {7} {8} {9}'.format(touch, str(temp1), str(temp2), str(temp3), str(temp4), str(temp5), str(temp6), str(flow), str(press), last)
+def packet_sensor(current_time:int, touch:str, temp1:int, temp2:int, temp3:int, temp4:int, temp5:int, temp6:int, flow:int, press:int, last:str):
+    temp_str = 'sen {0} {1} {2} {3} {4} {5} {6} {7} {8} {9} {10}'.format(str(current_time), touch, str(temp1), str(temp2), str(temp3), str(temp4), str(temp5), str(temp6), str(flow), str(press), last)
     temp_byte = temp_str.encode()
     return temp_byte
 
@@ -24,8 +24,8 @@ def read_packet(packet):
 
 
     if packet[0] == 'sen':
-        touch, temp1, temp2, temp3, temp4, temp5, temp6, flow, press, last = packet[1:]
-        return touch, int(temp1), int(temp2), int(temp3), int(temp4), int(temp5), int(temp6), int(flow), int(press), last
+        current_time, touch, temp1, temp2, temp3, temp4, temp5, temp6, flow, press, last = packet[1:]
+        return int(current_time), touch, int(temp1), int(temp2), int(temp3), int(temp4), int(temp5), int(temp6), int(flow), int(press), last
     elif packet[0] == 'ds':
         print(packet[1:])
         count, temp, heattime, staytime, gas = packet[1:]

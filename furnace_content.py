@@ -40,7 +40,7 @@ class SensorPlotCanvas(FigureCanvas):
     def compute_initial_figure(self):
         pass
 
-class SensorPlot(QWidget):
+class SensorArea(QWidget):
     """
     센서값을 사용하는 부분
 
@@ -63,11 +63,21 @@ class SensorPlot(QWidget):
         furnace_img = QLabel()
         furnace_img.setPixmap(QPixmap('.\\images\\furnace.png'))
 
-        sensor_text_area = QTableWidget(self) #나중에 세부적으로 설정할 예정
+        self.sensor_table = QVBoxLayout()
+        sensorname_list = ["온도1", "온도2", "온도3", "온도4", "온도5", "온도6", "유량", "압력"]
+        for sensorname in sensorname_list:
+            temp = QHBoxLayout()
+            namePart = QLabel(sensorname)
+            sensorValuePart = QLabel()
+
+            temp.addWidget(namePart)
+            temp.addWidget(sensorValuePart)
+
+            self.sensor_table.addLayout(temp)
 
         self.middle_area.addWidget(state_text, 1)
-        self.middle_area.addWidget(furnace_img, 7)
-        self.middle_area.addWidget(sensor_text_area, 3)
+        self.middle_area.addWidget(furnace_img, 1)
+        self.middle_area.addLayout(self.sensor_table, 8)
 
 
         self.base_box.addLayout(self.left_area, 2)
@@ -75,13 +85,13 @@ class SensorPlot(QWidget):
 
         self.setLayout(self.base_box)
 
-        self.list = [self.canvas.temp1, self.canvas.temp2, self.canvas.temp3, self.canvas.temp4, self.canvas.temp5, self.canvas.temp6,self.canvas.flow, self.canvas.press]
-        self.line = ["", "", "", "", "", "", "", ""]    #None 대신 ""을 사용함
+        self.subplot_list = [self.canvas.temp1, self.canvas.temp2, self.canvas.temp3, self.canvas.temp4, self.canvas.temp5, self.canvas.temp6,self.canvas.flow, self.canvas.press]
+        self.line = ["", "", "", "", "", "", "", ""]    #각 센서당 센서값들을 저장, 비어있으면 ""로 표기
         
-        for i in range(len(self.list)):              
+        for i in range(len(self.subplot_list)):              
             x = np.arange(50)
             y = np.ones(50, dtype=np.float)*np.nan
-            self.line[i], = self.list[i].plot(x, y, animated=False)
+            self.line[i], = self.subplot_list[i].plot(x, y, animated=False)
     
     def init_data(self, datas):
         """
@@ -114,6 +124,7 @@ class SensorPlot(QWidget):
         sensor_list.append(press)
 
         for index, _ in enumerate(self.line):
+
             y = sensor_list[index]
             old_y = self.line[index].get_ydata()
             new_y = np.r_[old_y[init_sensor_size:], y]
@@ -123,16 +134,21 @@ class SensorPlot(QWidget):
         self.canvas.flush_events()
 
 
-    def update(self, datas):
+    def update(self, sensorData):
         """
-        update total graph of one furnace
+        열처리로 페이지에서 센서값을 반영해 plot과 텍스트 업데이트
 
-        datas : sensor data -> [current, id, touch, temp1~6, flow, press]
+        sensorData : sensor data -> [current, id, touch, temp1~6, flow, press]
         type of datas elemnt without touch : int
         """
 
         for index, _ in enumerate(self.line):
-            y = int(datas[index + 3])
+            y = int(sensorData[index + 3])
+            sensorValuePart = self.sensor_table.itemAt(index).itemAt(1).widget()
+
+            valueAndUnitText = str(y) + (' C' if index < 6 else ' 임시단위')
+            sensorValuePart.setText(valueAndUnitText)
+
             old_y = self.line[index].get_ydata()
             new_y = np.r_[old_y[1:], y]
             self.line[index].set_ydata(new_y)
@@ -179,16 +195,10 @@ class SettingPlot(QWidget):
         self.setLayout(self.base_box)
         self.canvas.draw()
 
-    def update(self, x, y, start_time = None):
-        #print(f'testline in furance content 183 {start_time}')
+    def update(self, x, y):
 
         self.canvas.ax.set_xlim(0, x[-1])
         self.canvas.ax.set_ylim(0, max(y) + 200)
-        # if start_time:
-        #     now = utils.make_current()
-        #     now = utils.change_current_to_seconds(now)
-        #     diff = now - int(start_time)
-        #     self.canvas.ax.axvline(x = diff, color = 'red')
         self.plot.set_ydata(y)
         self.plot.set_xdata(x)
         self.canvas.draw()
@@ -234,11 +244,14 @@ class FurnaceContent(QWidget):
         self.base_able = []
 
         #sensor area : 센서값과 열처리로 이미지를 표현하는 부분(전체 화면에서 왼쪽-중간 부분)
-        self.sensor_area = SensorPlot()
+        self.sensor_area = SensorArea()
 
         #right_area : 공정 세부사항 결정하는 부분 (전체 화면에서 오른쪽 부분)
         self.right_area = QVBoxLayout()
         
+        #right_area의 하단부에 위치할 공정 세부설정의 그래프
+        self.setting_graph = SettingPlot()
+
         state_text = QLabel()
 
         #base element setting
@@ -306,12 +319,12 @@ class FurnaceContent(QWidget):
         base_area.itemAt(3).widget().clicked.connect(lambda:set_base_button.button_click(str(material_opt.currentText()), str(process_opt.currentText()), str(amount_opt.currentText()), self.sock))
         #add click event to set_detail_button
         detail_area.itemAt(2).itemAt(0).widget().clicked.connect(lambda:set_detail_button.button_click(str(gas_opt.currentText()), self.temp_list, self.heattime_list, self.staytime_list,self.sock))
-        detail_area.itemAt(2).itemAt(0).widget().clicked.connect(self.SetStartTime)
         #add click event to end_process_button
         detail_area.itemAt(2).itemAt(1).widget().clicked.connect(self.stop_button_click)
 
-        self.right_area.addLayout(base_area, 4)
-        self.right_area.addLayout(detail_area, 8)
+        self.right_area.addLayout(base_area, 1)
+        self.right_area.addLayout(detail_area, 1)
+        self.right_area.addWidget(self.setting_graph, 1)    # 그래프 사이즈가 안줄어든다
 
         #concat
         self.main_layout.addWidget(self.sensor_area,3)
@@ -326,14 +339,13 @@ class FurnaceContent(QWidget):
         self.setLayout(self.main_layout)
 
 
-    def apply_exist_process(self, process_setting, sensors, start_time):    #아직 starttime 반영 안함
+    def apply_exist_process(self, process_setting, sensors):
         """
         when pyqt5 process is starting, reading information of exists ongoing process
 
         process_setting's format =  [process_id, material, amount, process, count, temp_list, heattime, staytime, gas, starttime, output]
-        start_time(str) : start time, form is "mm/dd/yy HH:MM:SS"
         """
-        self.process_start_time = start_time
+        self.process_start_time = process_setting[-2]
 
         self.process_id, material, amount, process, count = process_setting[:5]
         temp_list, heattime_list, staytime_list = process_setting[5:5+count], process_setting[15:15+count], process_setting[25:25+count]
@@ -439,12 +451,7 @@ class FurnaceContent(QWidget):
 
     def stop_process_nature(self):
         self.clear_UI()
-        
 
-    def SetStartTime(self): #이 부분 수정 필요, process_start_time을 직접 설정하는 것이 아니라 server에 요청해서 가져오도록
-        if not self.process_start_time:
-            temp = utils.make_current()
-            self.process_start_time = utils.change_current_to_seconds(temp)
 
     def SetStateText(self, state:str, process_id = None):
         if state == 'on':
@@ -583,7 +590,7 @@ class SubWindow(QDialog):
             time_list.append(time_list[-1] + int(target.itemAt(1).widget().text()))
             time_list.append(time_list[-1] + int(target.itemAt(2).widget().text()))
 
-        self.setting_graph.update(time_list, temp_list, self.process_start_time)
+        self.setting_graph.update(time_list, temp_list)
         
 
     def showModel(self, start_time = None):
@@ -597,15 +604,15 @@ class SubWindow(QDialog):
                 time_list.append(time_list[-1] + int(target.itemAt(2).widget().text()))
             now = utils.make_current()
             now = utils.change_current_to_seconds(now)
-            diff = int(now) - int(start_time)
+            # diff = int(now) - int(start_time)
  
-            count = self.setting_area.count()
-            for i in range(count):
-                if time_list[i*2] <= diff:
-                    self.setting_area.itemAt(i).itemAt(0).widget().setEnabled(False)
-                    self.setting_area.itemAt(i).itemAt(1).widget().setEnabled(False)
-                    self.setting_area.itemAt(i).itemAt(2).widget().setEnabled(False)
-                    self.setting_area.itemAt(i).itemAt(3).widget().setEnabled(False)
+            # count = self.setting_area.count()
+            # for i in range(count):
+            #     if time_list[i*2] <= diff:
+            #         self.setting_area.itemAt(i).itemAt(0).widget().setEnabled(False)
+            #         self.setting_area.itemAt(i).itemAt(1).widget().setEnabled(False)
+            #         self.setting_area.itemAt(i).itemAt(2).widget().setEnabled(False)
+            #         self.setting_area.itemAt(i).itemAt(3).widget().setEnabled(False)
 
         else:
             self.process_start_time = None  #add

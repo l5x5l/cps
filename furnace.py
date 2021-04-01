@@ -7,6 +7,7 @@ from device import Device
 import sys
 import datetime
 import atexit
+import utils
 
 class Furnace(Device):
     def __init__(self, host, port, number):
@@ -53,7 +54,7 @@ class Furnace(Device):
         self.send_msg('furnace ' + str(self.number), self.sock)
 
 
-    def set_mean(self):
+    def SetTemp(self):
         if self.index >= len(self.tempers):
             return
         else:
@@ -64,7 +65,6 @@ class Furnace(Device):
                     self.mean = int(self.inclination * self.current_time)
                 else:   
                     self.mean = self.tempers[self.index - 1] + int(self.inclination * (self.current_time - self.staytimes[self.index - 1]))
-
             elif self.current_time <= self.staytimes[self.index]:    #유지
                 self.mean = self.tempers[self.index]
             else:      #승온
@@ -78,10 +78,9 @@ class Furnace(Device):
 
 
     #실제 센서값을 재현하기 위해 사용
-    def get_sensors(self):
-        print('furnace.py 79 line, generate sensor value')
+    def GetSensorValues(self):
         temp = []
-        self.set_mean()
+        self.SetTemp()
         for i in range(6):
             temp.append(int(random.gauss(self.mean, self.sb)))
         temp1, temp2, temp3, temp4, temp5, temp6 = temp
@@ -94,11 +93,12 @@ class Furnace(Device):
             isLast = 'True'
         else:
             isLast = 'False'
+        print(f'furnace.py 97 line, generate sensor value {temp1} {temp3} {temp5} {touch}')
 
         return touch, temp1, temp2, temp3, temp4, temp5, temp6, flow, press, isLast
 
 
-    def furnace_main(self):
+    def FurnaceMain(self):
         while True:
             isLast = 'False'
             signal = self.recv_msg(self.sock)
@@ -112,8 +112,9 @@ class Furnace(Device):
                 self.send_msg('fix confirm', self.sock)
                 self.ModifyProcess()
    
-            touch, temp1, temp2, temp3, temp4, temp5, temp6, flow, press, isLast = self.get_sensors()
-            send_pkt = packet_sensor(touch, temp1, temp2, temp3, temp4, temp5, temp6, flow, press, isLast)
+            touch, temp1, temp2, temp3, temp4, temp5, temp6, flow, press, isLast = self.GetSensorValues()
+            current_time = utils.get_elapsed_time(self.start_time)
+            send_pkt = packet_sensor(current_time, touch, temp1, temp2, temp3, temp4, temp5, temp6, flow, press, isLast)
             self.send_msg(send_pkt, self.sock)
 
             if isLast == 'True':    #공정 시간 만료로 인한 마지막 센서값인 경우
@@ -124,7 +125,7 @@ class Furnace(Device):
             time.sleep(parameter.time_interval)
 
 
-    def preprocessing(self):
+    def RecvStartOrder(self):
         recv_pkt = self.recv_msg(self.sock)
         count, temp, heattime, staytime, gas = read_packet(recv_pkt)
         
@@ -200,7 +201,7 @@ furnace = Furnace('127.0.0.1', 3050, sys.argv[1])
 furnace.connect()
 while True:
     furnace.clear_setting()
-    furnace.preprocessing()
-    furnace.furnace_main()
+    furnace.RecvStartOrder()
+    furnace.FurnaceMain()
 
 furnace.close()

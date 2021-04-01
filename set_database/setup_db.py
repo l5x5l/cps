@@ -22,7 +22,7 @@ dbcur.execute(sql)
 
 for i in range(total_furnace):
     number = i + 1
-    sql = """CREATE TABLE Furnace%s(current CHAR(6), id CHAR(13), touch VARCHAR(10), temp1 INT, temp2 INT, temp3 INT, temp4 INT, temp5 INT, temp6 INT, flow INT, press INT, PRIMARY KEY(current, id))"""
+    sql = """CREATE TABLE Furnace%s(current INT, id CHAR(13), touch VARCHAR(10), temp1 INT, temp2 INT, temp3 INT, temp4 INT, temp5 INT, temp6 INT, flow INT, press INT, PRIMARY KEY(current, id))"""
     val = (number)
     dbcur.execute(sql, val)
 

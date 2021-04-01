@@ -179,15 +179,7 @@ def apply_exist_process(dbconn, furnace_pages):
         dbcur.execute(sql)
         process_setting = list(dbcur.fetchall()[0]) 
 
-        #add start time (used when process fix)
-        sql = f"""select current from furnace{str(i+1)} where id = '{processes[i]}' order by current asc limit 1"""
-        dbcur.execute(sql)
-        start_time = dbcur.fetchall()
-        if not start_time:
-            start_time = utils.make_current()
-        else:
-            start_time = start_time[0][0]
-        furnace_pages[i].apply_exist_process(process_setting, sensors, start_time)   
+        furnace_pages[i].apply_exist_process(process_setting, sensors)   
     dbcur.close()
     return processes
 
@@ -205,7 +197,7 @@ def monitoring(dbconn, furnace_pages, working_process = []):
     # 프로그램 실행 후, 진행중인 공정에 대한 센서값 업데이트
     while True:
 
-        checkpoint = time.time()    #test
+        checkpoint = time.time()    
         dbconn.commit()
         processes = get_working_process(dbcur)
         for i in range(len(processes)):
@@ -238,7 +230,11 @@ def monitoring(dbconn, furnace_pages, working_process = []):
             sensors = list(sensors[0])
             furnace_pages[i].sensor_area.update(sensors)
 
-        time.sleep(parameter.time_interval - (time.time() - checkpoint))    #test 
-
+        if (time.time() - checkpoint) > parameter.time_interval:                #while문 내의 코드 실행이 2초 이상 지난 경우
+            continue
+        else:
+            time.sleep(parameter.time_interval - (time.time() - checkpoint))    #정확히 2초의 간격을 유지하기 위함
+        
+        
     dbcur.close()
 

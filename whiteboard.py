@@ -21,7 +21,6 @@ import parameter
 #     output = int((datetime.datetime.now().replace(microsecond=0) - start_time).total_seconds())
 
 # print(result)
-
-check = 1
-teststr = "test" + (" zero"  if check == 0 else " nope")
-print(teststr)
+test = None
+if test:
+    print("line")

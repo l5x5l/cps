@@ -124,9 +124,14 @@ class Detail_Button(QPushButton):
 
     def button_click(self, gas:str, tempers:list, heattimes:list, staytimes:list, sock):
         count = len(tempers)
-        heattime = ' '.join(heattimes)
-        staytime = ' '.join(staytimes)
-        temper = ' '.join(tempers)
+
+        local_tempers = list(map(str, tempers))
+        local_heattimes = list(map(str, heattimes))
+        local_staytimes = list(map(str, staytimes))
+
+        heattime = ' '.join(local_heattimes)
+        staytime = ' '.join(local_staytimes)
+        temper = ' '.join(local_tempers)
         
         if self.now_start_button:
             msg = self.base_opt + ' ' + str(count) + ' ' + temper + ' ' + heattime + ' ' + staytime + ' ' + gas

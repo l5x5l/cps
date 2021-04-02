@@ -12,7 +12,9 @@ import numpy as np
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
 import matplotlib.animation as animation
+import loadingGif
 
+import time #이건 기능 테스트용
 import random
 
 class SensorPlotCanvas(FigureCanvas):
@@ -196,9 +198,8 @@ class SettingPlot(QWidget):
         self.canvas.draw()
 
     def update(self, x, y, elapsed_time = None):
-        if elapsed_time:
-            self.canvas.ax.clear()
-            self.canvas.ax.axvline(x=elapsed_time)
+        # if elapsed_time:
+        #     self.canvas.ax.axvspan(0, elapsed_time, color="red")
         self.canvas.ax.set_xlim(0, x[-1])
         self.canvas.ax.set_ylim(0, max(y) + 200)
         self.plot.set_ydata(y)
@@ -206,6 +207,8 @@ class SettingPlot(QWidget):
         self.canvas.draw()
         self.canvas.flush_events()
         
+    def clear(self):
+        self.canvas.ax.clear()
         
 
 class FurnaceContent(QWidget):
@@ -229,9 +232,10 @@ class FurnaceContent(QWidget):
         self.dbconn = dbconn
         self.combobox_opt = combo_opt
 
-        self.process_id = None
+        #self.process_id = None
         #self.process_total_time = None  #add
-        self.process_start_time = None
+        #self.process_start_time = None
+        self.process_info = {"id":None, "starttime":None}
         self.heattime_list = []     # 공정 세부 온도/시간값들
         self.staytime_list = []
         self.temp_list = []
@@ -306,7 +310,6 @@ class FurnaceContent(QWidget):
 
         detail_area.addLayout(buttons_in_detail_area)      
 
-        
         self.base_able.append(material_opt)
         self.base_able.append(process_opt)
         self.base_able.append(amount_opt)
@@ -326,7 +329,7 @@ class FurnaceContent(QWidget):
         #add click event to set_base_button
         base_area.itemAt(3).widget().clicked.connect(lambda:set_base_button.button_click(str(material_opt.currentText()), str(process_opt.currentText()), str(amount_opt.currentText()), self.sock))
         #add click event to set_detail_button
-        detail_area.itemAt(2).itemAt(0).widget().clicked.connect(lambda:set_detail_button.button_click(str(gas_opt.currentText()), self.temp_list, self.heattime_list, self.staytime_list,self.sock))
+        detail_area.itemAt(2).itemAt(0).widget().clicked.connect(lambda:set_detail_button.button_click(str(gas_opt.currentText()), self.temp_list, self.heattime_list, self.staytime_list,self.sock, self.process_info))
         #add click event to end_process_button
         detail_area.itemAt(2).itemAt(1).widget().clicked.connect(self.stop_button_click)
 
@@ -353,13 +356,13 @@ class FurnaceContent(QWidget):
 
         process_setting's format =  [process_id, material, amount, process, count, temp_list, heattime, staytime, gas, starttime, output]
         """
-        self.process_start_time = process_setting[-2]
+        self.process_info["starttime"] = process_setting[-2]
 
-        self.process_id, material, amount, process, count = process_setting[:5]
+        self.process_info["id"], material, amount, process, count = process_setting[:5]
         self.temp_list, self.heattime_list, self.staytime_list = process_setting[5:5+count], process_setting[15:15+count], process_setting[25:25+count]
         gas = process_setting[-3]
         
-        number = self.process_id[:2]
+        number = self.process_info["id"][:2]
 
         temp_list = list(map(str, self.temp_list))
         heattime_list = list(map(str, self.heattime_list))
@@ -392,7 +395,7 @@ class FurnaceContent(QWidget):
         #send to server to notice about ongoing process
         base_msg = material + ' ' + process + ' ' + str(amount)
         detail_msg = str(count) + ' ' + temp + ' ' + heattime + ' ' + staytime + ' ' + gas
-        init_msg = 'init ' + self.process_id + ' ' + number + ' ' + base_msg + ' ' + detail_msg     #add self.process_id + ' '
+        init_msg = 'init ' + self.process_info["id"] + ' ' + number + ' ' + base_msg + ' ' + detail_msg     #add self.process_id + ' '
 
         init_byte = init_msg.encode()
         self.sock.sendall(init_byte)
@@ -419,7 +422,7 @@ class FurnaceContent(QWidget):
 
     def set_detail_temp_time_click(self):
         win = self.setting_popup
-        r = win.showModel(self.process_start_time)
+        r = win.showModel(self.process_info["starttime"])
 
         if r:
             count = win.setting_area.count()
@@ -439,7 +442,7 @@ class FurnaceContent(QWidget):
 
 
     def clear_UI(self):
-        self.process_start_time = None
+        self.process_info["starttime"] = None
         #self.process_total_time = None
     
         for elem in self.base_disable:
@@ -462,12 +465,13 @@ class FurnaceContent(QWidget):
         self.clear_UI()
 
 
+
     def SetStateText(self, state:str, process_id = None):
         if state == 'on':
             self.sensor_area.middle_area.itemAt(0).widget().setText(f"furnace{self.number} is on")
         elif state == 'working':
-            self.process_id = process_id
-            self.sensor_area.middle_area.itemAt(0).widget().setText(f"furnace{self.number} is working : {self.process_id}\n")
+            self.process_info["id"] = process_id
+            self.sensor_area.middle_area.itemAt(0).widget().setText(f""""furnace{self.number} is working : {self.process_info["id"]}\n""")
         elif state == '-':
             self.clear_UI()
             self.sensor_area.middle_area.itemAt(0).widget().setText(f"furnace{self.number} is off")
@@ -485,13 +489,14 @@ class FurnaceContent(QWidget):
             self.setting_graph_time_list.append(self.setting_graph_time_list[-1] + int(self.heattime_list[i]))
             self.setting_graph_time_list.append(self.setting_graph_time_list[-1] + int(self.staytime_list[i]))
         
+
     def Update(self, sensors):
         temp_diff = None
-        if self.process_start_time:
-            temp_diff = utils.get_elapsed_time(self.process_start_time)
-        print(f"testline in furnace_content 492 {temp_diff}")
+        if self.process_info["starttime"]:
+            temp_diff = utils.get_elapsed_time(self.process_info["starttime"])
         self.sensor_area.update(sensors)
-        self.setting_graph.update(self.setting_graph_time_list, self.setting_graph_temp_list)
+        self.setting_graph.update(self.setting_graph_time_list, self.setting_graph_temp_list, temp_diff)
+
 
 class SubWindow(QDialog):
     def __init__(self):

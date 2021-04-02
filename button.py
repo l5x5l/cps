@@ -1,6 +1,7 @@
 import sys
 import parameter
 import socket
+import loadingGif
 
 from PyQt5.QtWidgets import QPushButton
 from PyQt5.QtWidgets import QApplication
@@ -122,7 +123,7 @@ class Detail_Button(QPushButton):
         self.able_list = able_list
         self.disable_list = disable_list
 
-    def button_click(self, gas:str, tempers:list, heattimes:list, staytimes:list, sock):
+    def button_click(self, gas:str, tempers:list, heattimes:list, staytimes:list, sock:socket, process_info:tuple):
         count = len(tempers)
 
         local_tempers = list(map(str, tempers))
@@ -141,7 +142,12 @@ class Detail_Button(QPushButton):
         msg_byte = msg.encode()
         sock.sendall(msg_byte)
 
+        loader = loadingGif.LoadingGif()
         recv_msg = sock.recv(1024).decode()
+        loader.stopAnimation()
+
+        if self.now_start_button:
+            process_info["id"], process_info["starttime"] = recv_msg.split('+')
 
         self.custom_toggle()
         for elem in self.disable_list:

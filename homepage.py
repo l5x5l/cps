@@ -58,7 +58,6 @@ class Select(QWidget):
         self.stk_w.widget(number).SetStateText(state, process)
 
     
-
 class HomePage(QWidget):
     def __init__(self, sock, dbconn):
         super().__init__()
@@ -125,7 +124,7 @@ class HomePage(QWidget):
 
         self.setLayout(self.layout)
         self.setWindowTitle('CPS ProtoType')
-        self.setGeometry(0, 0, parameter.width, parameter.height)
+        self.setGeometry(0, 0, parameter.width, parameter.height) #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     
     def back_button_click(self):
         self.dyn_content.setCurrentIndex(0)
@@ -237,4 +236,3 @@ def monitoring(dbconn, furnace_pages, working_process = []):
         
         
     dbcur.close()
-

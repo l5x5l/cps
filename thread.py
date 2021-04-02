@@ -235,7 +235,19 @@ def server_client(sock:socket.socket, datas:Datas, q:list, dbconn, lock):
             q[number - 1].append(q_msg)
             lock[number - 1].release()
 
-            sock.sendall(parameter.success_str.encode())
+            #공정을 시작하고 공정에 대한 정보가 데이터베이스에 저장되기까지 약간의 시간이 걸리는데,
+            #데이터베이스에 공정 설정값이 저장된 후 이를 읽어오기 위해 사용
+            starttime = None
+            while not starttime:
+                dbconn.commit()
+                sql = f"""select starttime from process where id = '{process_id}'"""
+                dbcur.execute(sql)
+                result = dbcur.fetchall()
+                if result:
+                    starttime = result[0][0]
+            process_info = process_id + '+' + starttime
+
+            sock.sendall(process_info.encode())
         elif recv_msg_list[0] == 'detail_fix':  #when detail modify button is clicked (local 변수에 저장했던 온도/시간/가스 제거)
             prev_detail = temp[-1]
             temp.pop()
@@ -276,3 +288,4 @@ def server_client(sock:socket.socket, datas:Datas, q:list, dbconn, lock):
         else:      #그 외 이상한 명령이 수신된 경우
             sock.sendall((parameter.error_str + '_wrong msg type' + recv_msg_list[0]).encode())
     sock.close()
+

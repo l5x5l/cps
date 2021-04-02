@@ -3,6 +3,7 @@ import time
 import utils
 import pymysql
 import parameter
+import os
 
 # start_time = datetime.datetime.now().replace(microsecond=0)
 # start_time_str = start_time.strftime("%m/%d/%y %H:%M:%S")
@@ -21,6 +22,5 @@ import parameter
 #     output = int((datetime.datetime.now().replace(microsecond=0) - start_time).total_seconds())
 
 # print(result)
-test = None
-if test:
-    print("line")
+
+exec(open(".\\server.py").read())

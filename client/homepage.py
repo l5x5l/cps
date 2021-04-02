@@ -1,18 +1,18 @@
-import parameter
-import furnace_content
-import sys
-import client
-import button
-import pymysql
-import threading
-import time
-import json
-import utils
 from setting_content import SettingContent
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 from PyQt5.QtGui import QPixmap
+import pymysql
+import threading
+import time
+import json
 
+import client
+import button
+import parameter
+import furnacePage
+import utils
+import thread
 
 class Select(QWidget):
     def __init__(self, stk_w, sock):
@@ -59,9 +59,9 @@ class Select(QWidget):
 
     
 class HomePage(QWidget):
-    def __init__(self, sock, dbconn):
+    def __init__(self, C, dbconn):
         super().__init__()
-        self.sock = sock
+        self.sock = C.sock
         self.dbconn = dbconn
 
         self.processes_id = []
@@ -105,7 +105,7 @@ class HomePage(QWidget):
         self.dyn_content.addWidget(self.content_area)
         self.furnace_list = []
         for i in range(parameter.total_furnace):
-            self.furnace_list.append(furnace_content.FurnaceContent(i+1, self.sock, self.dbconn, self.combo_opt))
+            self.furnace_list.append(furnacePage.FurnaceContent(i+1, self.sock, self.dbconn, self.combo_opt))
             self.dyn_content.addWidget(self.furnace_list[i])
         
         self.dyn_content.addWidget(SettingContent(self.combo_opt))
@@ -114,7 +114,7 @@ class HomePage(QWidget):
         working_process = apply_exist_process(self.dbconn, self.furnace_list)
 
         #add working_process to monitoring
-        t = threading.Thread(target=monitoring, args=(self.dbconn, self.furnace_list, working_process))
+        t = threading.Thread(target=thread.monitoring, args=(self.dbconn, self.furnace_list, working_process))
         t.daemon = True
         t.start()
 
@@ -124,44 +124,26 @@ class HomePage(QWidget):
 
         self.setLayout(self.layout)
         self.setWindowTitle('CPS ProtoType')
-        self.setGeometry(0, 0, parameter.width, parameter.height) #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        self.setGeometry(0, 0, parameter.width, parameter.height)
     
     def back_button_click(self):
         self.dyn_content.setCurrentIndex(0)
         self.sock.sendall('esc'.encode())
 
         recv_msg = self.sock.recv(1024).decode()
-        #print(recv_msg)
+
 
     def set_button_click(self):
         self.dyn_content.setCurrentIndex(parameter.total_furnace + 1)
 
-#test function
-def get_working_process(dbcur):
-    """
-    dbcur(sql connector cursor)
-    return : working process id list, indicates furance's wokring process
-    ex ['01_00000000', '-', '-', '-', '05_00000000', '-', '-', '-']
-    """
-    sql = parameter.sql
-    #sql = parameter.test_sql
-    dbcur.execute(sql)
-    processes = dbcur.fetchall()   
-    working_process = ['-'] * parameter.total_furnace
-    for process in processes:
-        number = int(process[0][:2])
-        working_process[number - 1] = process[0]
 
-    return working_process
-
-#test function
 def apply_exist_process(dbconn, furnace_pages):
     """
     dbconn(database connector)
-    furnace_pagse(list) : list of furnace_content instance
+    furnace_pagse(list) : list of furnacePage instance
     """
     dbcur = dbconn.cursor()
-    processes = get_working_process(dbcur)
+    processes = utils.get_working_process(dbcur)
 
     for i in range(parameter.total_furnace):
         if processes[i] == '-':
@@ -181,58 +163,3 @@ def apply_exist_process(dbconn, furnace_pages):
         furnace_pages[i].apply_exist_process(process_setting, sensors)   
     dbcur.close()
     return processes
-
-def monitoring(dbconn, furnace_pages, working_process = []):
-    """
-    get realtime sensor data from database
-    dbconn(database connector)
-    furnace_pages(list) : list of furnace_content instance
-    working_process(list) : list of exist working process's id
-    ex ['01_00000000', '-', '-', '-', '05_00000000', '-', '-', '-']
-    """
-    dbcur = dbconn.cursor()
-    now_working_process = working_process
-
-    # 프로그램 실행 후, 진행중인 공정에 대한 센서값 업데이트
-    while True:
-
-        checkpoint = time.time()    
-        dbconn.commit()
-        processes = get_working_process(dbcur)
-        for i in range(len(processes)):
-            if processes[i] == '-':     
-                if now_working_process[i] == '-':   # 공정이 존재하지 않은 경우
-                    continue        
-                else:          #공정이 종료된 경우
-                    dbconn.commit()                      
-                    sql = f"""select output from process where id = '{now_working_process[i]}'"""
-                    dbcur.execute(sql)
-                    result = dbcur.fetchall()
-                    now_working_process[i] = processes[i]   
-                    #furnace_pages[i].sensor_area.clear()
-                    if result[0][0] == 0:
-                        furnace_pages[i].stop_process_nature()
-
-
-            if now_working_process[i] == '-' and processes[i] != '-':   # 공정이 새로 시작된 경우
-                furnace_pages[i].sensor_area.clear()
-                now_working_process[i] = processes[i]
-
-            sql = """select * from furnace""" + str(i+1) +  """ where id = '""" + now_working_process[i] + """' order by current desc limit 1"""
-            #sql = """select * from furnace""" + str(i+1) +  """ where id = '""" + processes[i] + """' order by current desc limit 1"""
-            dbcur.execute(sql)
-            sensors = list(dbcur.fetchall())
-
-            if len(sensors) == 0:
-                continue
-            
-            sensors = list(sensors[0])
-            furnace_pages[i].Update(sensors)
-
-        if (time.time() - checkpoint) > parameter.time_interval:                #while문 내의 코드 실행이 2초 이상 지난 경우
-            continue
-        else:
-            time.sleep(parameter.time_interval - (time.time() - checkpoint))    #정확히 2초의 간격을 유지하기 위함
-        
-        
-    dbcur.close()

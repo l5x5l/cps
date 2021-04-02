@@ -14,7 +14,7 @@ if __name__ == "__main__":
     dbconn = pymysql.connect(host=parameter.host, user = parameter.user, password=parameter.password, database=parameter.db, charset = parameter.charset)
     app = QApplication(sys.argv)
 
-    form = homepage.HomePage(C.sock, dbconn)
+    form = homepage.HomePage(C, dbconn)
     form.show()
 
     #dbconn.close()

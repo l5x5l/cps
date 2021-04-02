@@ -2,7 +2,6 @@ import parameter
 import socket
 import threading
 import pymysql
-import datetime
 import utils
 from packet import *
 from data import Datas
@@ -23,17 +22,19 @@ def check_process(dbcur, process_id):
     return len(result) == 0
 
 
-def server_furnace(sock:socket.socket, number:int, datas:Datas, q:list, dbconn, lock):
+def server_furnace(sock:socket.socket, number:int, datas:Datas, order_queue:list, dbconn, specific_lock:threading.Lock, end_queue:list, end_queue_lock:threading.Lock):
     """
     server's thread which connected with furnace\n
     socket(socket.socket) : 열처리로와 연결한 socket\n
     number(int) : 열처리로의 번호\n
     datas(Datas class) : 열처리로의 상태, 해당 열처리로가 진행하고 있는 공정에 대한 정보를 담고 있는 instance\n
-    q(list) : 해당 열처리로가 수행해야할 명령(공정시작, 공정수정, 공정중지)이 담긴 queue, 근데 list를 사용해서 구현한 \n
+    order_queue(list) : 해당 열처리로가 수행해야할 명령(공정시작, 공정수정, 공정중지)이 담긴 queue, 근데 list를 사용해서 구현한 \n
               본 쓰레드에서는 queue에 담긴 명령을 하나씩 pop해서 수행한다.\n
     dbconn(database connector) : 데이터베이스에 센서값을 저장하는데 사용\n
-    lock(threading.lock) : datas, q에 접근할 때 critical section이 발생하는 것을 막기 위해 사용\n
-
+    specific_lock(threading.lock) : datas[number - 1], order_queue[number - 1]에 접근할 때 critical section이 발생하는 것을 막기 위해 사용\n
+    end_queue(list) : 정상적으로 종료된 공정의 정보를 담을 queue, list를 사용하여 구현하였음\n
+                    [process_id, mete, manu, inp, count, temp_list, heattime_list, staytime_list, gas]가 list의 element
+    end_queue_lock(threading.lock) : end_queue에 접근할 때 critical section이 발생하는 것을 막기 위해 사용\n
 
     큰 구조는 아래와 같다\n
     while:\n
@@ -47,7 +48,6 @@ def server_furnace(sock:socket.socket, number:int, datas:Datas, q:list, dbconn, 
     is_running = False
     end_flag = False
     index = number - 1
-    time_interval = parameter.time_interval
     process_start_time = None
 
     str_number = '{:02d}'.format(int(number))
@@ -55,9 +55,9 @@ def server_furnace(sock:socket.socket, number:int, datas:Datas, q:list, dbconn, 
     dbcur.execute(sql)
     dbconn.commit()
 
-    while True: #add while
+    while True: 
         while datas.datas[index]['state'] == 'on':  #서버와 연결된 상태라면(on) 공정시작신호가 올 때까지 대기
-            for elem in q:
+            for elem in order_queue:
                 if elem[1] == 'start':  #공정시작신호를 받은 경우
                     process_id, mete, manu, inp, count, temp_list, heattime_list, staytime_list, gas = utils.extract_detail_option(elem)
 
@@ -86,30 +86,30 @@ def server_furnace(sock:socket.socket, number:int, datas:Datas, q:list, dbconn, 
                     dbcur.execute(sql, val)
                     dbconn.commit()
 
-                    lock.acquire()
+                    specific_lock.acquire()
                     datas.working_furnace_data(number, process_id, process_start_time) 
-                    q.remove(elem)
-                    lock.release()
+                    order_queue.remove(elem)
+                    specific_lock.release()
                     break
                 else:   #공정시작 전 공정수정/공정중지 신호가 온 경우 이를 무시하기 위해 존재
                     print('[server] ignore msg in q : ' + str(elem[0]) + " : " + elem[1])
-                    lock.acquire()
-                    q.remove(elem)
-                    lock.release()
+                    specific_lock.acquire()
+                    order_queue.remove(elem)
+                    specific_lock.release()
             
 
         #공정이 시작된 이후 부분(공정수정/공정중지 메세지를 송신, 센서값 수신)
         while True:
             no_signal = True
             end_flag = False
-            for elem in q:
+            for elem in order_queue:
                 if elem[1] == 'end':
                     end_flag = True
                     sock.sendall(b'end signal')
                     no_signal = False
-                    lock.acquire()
-                    q.clear()
-                    lock.release()
+                    specific_lock.acquire()
+                    order_queue.clear()
+                    specific_lock.release()
                     break
                 elif elem[1] == 'fix':
                     sock.sendall(b'fix signal')
@@ -127,9 +127,9 @@ def server_furnace(sock:socket.socket, number:int, datas:Datas, q:list, dbconn, 
                     dbconn.commit()
                     
                     no_signal = False
-                lock.acquire()
-                q.remove(elem)
-                lock.release()
+                specific_lock.acquire()
+                order_queue.remove(elem)
+                specific_lock.release()
 
             if no_signal:
                 sock.sendall(b'no_signal')  #어떠한 명령도 입력되지 않음을 열처리로에 전송
@@ -141,9 +141,9 @@ def server_furnace(sock:socket.socket, number:int, datas:Datas, q:list, dbconn, 
                 dbcur.execute(sql, val)
                 dbconn.commit()
 
-                lock.acquire()    
+                specific_lock.acquire()    
                 datas.on_furnace_data(number)
-                lock.release()
+                specific_lock.release()
                 break
             
             pkt = sock.recv(1024)   #센서값 수신
@@ -161,14 +161,17 @@ def server_furnace(sock:socket.socket, number:int, datas:Datas, q:list, dbconn, 
             #모든 공정과정이 끝난 경우(정상종료)
             #중지신호를 열처리로에 전송하는 비정상종료와는 다르게, 열처리로 자체에서 종료 처리를 하므로 중지신호를 보낼 필요가 없다
             if last == 'True':
+                # end_queue_lock.acquire()
+                # end_queue.append([process_id, mete, manu, inp, count, temp_list, heattime_list, staytime_list, gas])
+                # end_queue_lock.release()
                 sql = "UPDATE process SET output = %s WHERE id = %s"
                 val = (int(0), process_id)
                 dbcur.execute(sql, val)
                 dbconn.commit()
 
-                lock.acquire()   
+                specific_lock.acquire()   
                 datas.on_furnace_data(number)
-                lock.release()
+                specific_lock.release()
                 break
 
     dbconn.close()

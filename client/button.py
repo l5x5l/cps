@@ -83,14 +83,13 @@ class Detail_Button(QPushButton):
         self.disable_list = None
         self.base_opt = 'detail'
 
-        #아 변수명을 뭘로 하지
         self.is_process_wokring = False
 
         self.setCheckable(True)
 
     def set_state_start(self):  #using when clear UI
         self.now_start_button = True
-        self.setStyleSheet("background-color: %s" % (self.colors[self.now_start_button]))
+        self.setStyleSheet("background-color: green")
         self.setText(self.texts[self.now_start_button])
         self.base_opt = 'detail'
 
@@ -98,7 +97,7 @@ class Detail_Button(QPushButton):
         
     def set_state_fix(self):
         self.now_start_button = False
-        self.setStyleSheet("background-color: %s" % (self.colors[self.now_start_button]))
+        self.setStyleSheet("background-color: orange")
         self.setText(self.texts[self.now_start_button])
         self.base_opt = 'detail_fix'
 
@@ -144,9 +143,10 @@ class Detail_Button(QPushButton):
 
         loader = loadingGif.LoadingGif()
         recv_msg = sock.recv(1024).decode()
+        print(f"testline in button 145 : {recv_msg}")
         loader.stopAnimation()
 
-        if self.now_start_button:
+        if self.now_start_button and not self.is_process_wokring:
             process_info["id"], process_info["starttime"] = recv_msg.split('+')
 
         self.custom_toggle()

@@ -158,15 +158,15 @@ class ConfirmWindow(QDialog):
     def showModel(self):
         return super().exec_()
 
-if __name__ == "__main__":
-    #C = client.Client(parameter.host, parameter.port)
-    #C.connect()
+# if __name__ == "__main__":
+#     #C = client.Client(parameter.host, parameter.port)
+#     #C.connect()
 
-    with open(parameter.json_path, 'r') as combo_json:
-        combo_opt = json.load(combo_json)
+#     with open(parameter.json_path, 'r') as combo_json:
+#         combo_opt = json.load(combo_json)
 
-    app = QApplication(sys.argv)
-    form = SettingContent(combo_opt)
-    form.show()
+#     app = QApplication(sys.argv)
+#     form = SettingContent(combo_opt)
+#     form.show()
 
-    sys.exit(app.exec_())
+#     sys.exit(app.exec_())

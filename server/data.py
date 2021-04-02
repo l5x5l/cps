@@ -1,5 +1,4 @@
 import random
-import parameter
 
 #이건 서버에서 현재 작동중인 열처리로를 확인하기 위해 사용
 class Datas:

@@ -14,15 +14,17 @@ class Server(Device):
         self.port = port
         self.serv_addr = (self.addr, self.port)
         self.datas = data.Datas(total_furnace)
-        self.q = []
+        self.order_queue = []
+        self.normal_end_queue = []
         
         for i in range(total_furnace):
-            self.q.append([])
+            self.order_queue.append([])
 
-        self.lock = []
-
+        self.specific_furnace_lock = []
         for i in range(parameter.total_furnace):
-            self.lock.append(threading.Lock())
+            self.specific_furnace_lock.append(threading.Lock())
+
+        self.end_queue_lock = threading.Lock()
 
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.sock.bind(self.serv_addr)
@@ -50,16 +52,16 @@ class Server(Device):
             number = int(confirm[1])    #furnace number
             self.datas.on_furnace_data(number)
             dbconn = self.connect_db(parameter.user, parameter.password, parameter.db, parameter.charset)
-            t = threading.Thread(target=thread.server_furnace, args=(conn_sock, number, self.datas, self.q[number - 1], dbconn, self.lock[number - 1]))
+            t = threading.Thread(target=thread.server_furnace, args=(conn_sock, number, self.datas, self.order_queue[number - 1], dbconn, self.specific_furnace_lock[number - 1], self.normal_end_queue, self.end_queue_lock))
             t.start()
         elif confirm[0] == 'client':
             dbconn = self.connect_db(parameter.user, parameter.password, parameter.db, parameter.charset)
-            t = threading.Thread(target=thread.server_client, args=(conn_sock, self.datas, self.q, dbconn, self.lock))
+            t = threading.Thread(target=thread.server_client, args=(conn_sock, self.datas, self.order_queue, dbconn, self.specific_furnace_lock))
             t.start()
 
 
-serv = Server(parameter.host, parameter.port, parameter.total_furnace, parameter.maximum_client)
-while True:
-    conn_sock, confirm_msg = serv.connect()
-    serv.start_thread(conn_sock, confirm_msg)
+# serv = Server(parameter.host, parameter.port, parameter.total_furnace, parameter.maximum_client)
+# while True:
+#     conn_sock, confirm_msg = serv.connect()
+#     serv.start_thread(conn_sock, confirm_msg)
     

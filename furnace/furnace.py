@@ -1,15 +1,13 @@
 import socket
 import random
-import parameter
 import time
-from packet import *
-from device import Device
-import sys
 import datetime
-import atexit
+
+from packet import *
+import parameter
 import utils
 
-class Furnace(Device):
+class Furnace:
     def __init__(self, host, port, number):
         """
         가상으로 구현한 열처리로, 실제 열처리로와 매우 큰 차이가 있을 수 있음\n
@@ -52,6 +50,21 @@ class Furnace(Device):
         self.sock.connect(self.serv_addr)  
         print('[furnace] connect with server')
         self.send_msg('furnace ' + str(self.number), self.sock)
+
+    def recv_msg(self, sock:socket.socket):
+        """
+        recv data and transform to str type
+        """
+        msg = self.sock.recv(1024)
+        return msg.decode()
+
+
+    def send_msg(self, msg, sock:socket.socket):
+        if type(msg) is bytes:
+            self.sock.sendall(msg)
+        elif type(msg) is str:
+            msg = msg.encode()
+            self.sock.sendall(msg)
 
 
     def SetTemp(self):
@@ -196,12 +209,12 @@ class Furnace(Device):
         self.current_time = None
         self.gas = None
 
-#165.246.44.133
-furnace = Furnace('127.0.0.1', 3050, sys.argv[1])
-furnace.connect()
-while True:
-    furnace.clear_setting()
-    furnace.RecvStartOrder()
-    furnace.FurnaceMain()
+# #165.246.44.133
+# furnace = Furnace('127.0.0.1', 3050, sys.argv[1])
+# furnace.connect()
+# while True:
+#     furnace.clear_setting()
+#     furnace.RecvStartOrder()
+#     furnace.FurnaceMain()
 
-furnace.close()
+# furnace.close()

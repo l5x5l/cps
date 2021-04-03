@@ -323,7 +323,7 @@ class SubWindow(QDialog):
         self.graph_area.addWidget(btn_graph_renew, 1)
         
 
-        #area where input time, temper and button placed
+        #온도/승온시간/유지시간 입력 부분과 미리보기버튼, 확인버튼이 위치
         self.right_area = QVBoxLayout()
         #consist of ok button and cancel button
         self.OK_CAN = QHBoxLayout()
@@ -436,7 +436,6 @@ class SubWindow(QDialog):
             # now = utils.make_current()
             # now = utils.change_current_to_seconds(now)
             now = utils.get_elapsed_time(start_time)
-            print(f"testline in furnace_content line 641 {now}")
             # diff = int(now) - int(start_time)
  
             # count = self.setting_area.count()

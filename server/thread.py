@@ -5,21 +5,7 @@ import pymysql
 import utils
 from packet import *
 from data import Datas
-
-def check_process(dbcur, process_id):
-    """
-    check same process already exists
-    dbcur(database connector's cursor)
-    process_id(str) : process identifier
-
-    return : if process_id already exist, return False, else return True
-    """
-    sql = """select * from process where id = '""" + process_id + """'"""
-    dbcur.execute(sql)
-    result = dbcur.fetchall()
-
-    return len(result) == 0
-
+import time
 
 def server_furnace(sock:socket.socket, number:int, datas:Datas, order_queue:list, dbconn, specific_lock:threading.Lock, end_queue:list, end_queue_lock:threading.Lock):
     """
@@ -61,7 +47,7 @@ def server_furnace(sock:socket.socket, number:int, datas:Datas, order_queue:list
                 if elem[1] == 'start':  #공정시작신호를 받은 경우
                     process_id, mete, manu, inp, count, temp_list, heattime_list, staytime_list, gas = utils.extract_detail_option(elem)
 
-                    if not check_process(dbcur, process_id):    #만에하나 현 공정과 동일한 id를 가진 공정이 감지된 경우, 그 공정에 대한 정보를 삭제하고 현 공정으로 덮어씀
+                    if not utils.check_process(dbcur, process_id):    #만에하나 현 공정과 동일한 id를 가진 공정이 감지된 경우, 그 공정에 대한 정보를 삭제하고 현 공정으로 덮어씀
                         sql = "UPDATE process SET material = %s, amount = %s, manufacture = %s, count = %s, temper1 = %s, temper2 = %s, temper3 = %s, temper4 = %s, temper5 = %s, temper6 = %s, temper7 = %s, temper8 = %s, temper9 = %s, temper10 = %s, heattime1 = %s, heattime2 = %s, heattime3 = %s, heattime4 = %s, heattime5 = %s, heattime6 = %s, heattime7 = %s, heattime8 = %s, heattime9 = %s, heattime10 = %s, staytime1 = %s, staytime2 = %s, staytime3 = %s, staytime4 = %s, staytime5 = %s, staytime6 = %s, staytime7 = %s, staytime8 = %s, staytime9 = %s, staytime10 = %s, gas = %s, starttime = %s, output = %s WHERE id = %s"
                         val = (mete, int(inp), manu, count, temp_list[0], temp_list[1], temp_list[2], temp_list[3], temp_list[4], temp_list[5], temp_list[6], temp_list[7], temp_list[8], temp_list[9], heattime_list[0], heattime_list[1], heattime_list[2], heattime_list[3], heattime_list[4], heattime_list[5], heattime_list[6], heattime_list[7], heattime_list[8], heattime_list[9], staytime_list[0], staytime_list[1], staytime_list[2], staytime_list[3], staytime_list[4], staytime_list[5], staytime_list[6], staytime_list[7], staytime_list[8], staytime_list[9], gas, None, None, process_id)
                         dbcur.execute(sql, val)
@@ -134,8 +120,8 @@ def server_furnace(sock:socket.socket, number:int, datas:Datas, order_queue:list
             if no_signal:
                 sock.sendall(b'no_signal')  #어떠한 명령도 입력되지 않음을 열처리로에 전송
 
-            #공정 중지버튼으로 인한 중단(비정상 종료)의 경우
-            if end_flag:
+
+            if end_flag:    #공정 중지버튼으로 인한 중단(비정상 종료)의 경우
                 sql = "UPDATE process SET output = %s WHERE id = %s"
                 val = (int(1), process_id)
                 dbcur.execute(sql, val)
@@ -150,7 +136,6 @@ def server_furnace(sock:socket.socket, number:int, datas:Datas, order_queue:list
     
             current_time, touch, temp1, temp2, temp3, temp4, temp5, temp6, flow, press, last = read_packet(pkt)
 
-            # current_time = utils.make_current() 과거
 
             #센서값을 데이터베이스에 저장
             sql = """INSERT INTO furnace%s(current, id, touch, temp1, temp2, temp3, temp4, temp5, temp6, flow, press) VALUES(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"""
@@ -181,8 +166,8 @@ def server_furnace(sock:socket.socket, number:int, datas:Datas, order_queue:list
 def server_client(sock:socket.socket, datas:Datas, q:list, dbconn, lock):
     """
     server's thread which connected with client(=monitoring program)                                                    \n
-    sock(socket.socket) : 클라이언트와 연결한 socket                                                                    \n
-    datas(Datas class) : 열처리로의 상태, 해당 열처리로가 진행하고 있는 공정에 대한 정보를 담고 있는 instance               \n
+    sock(socket.socket) : 클라이언트와 연결한 socket                                                                     \n
+    datas(Datas class) : 열처리로의 상태, 해당 열처리로가 진행하고 있는 공정에 대한 정보를 담고 있는 instance                \n
     q(list[list]) : 열처리로의 개수만큼의 list를 가지고 있는 queue, (queue는 리스트로 사용)                                 \n
                     q의 number - 1번째 인덱스에는 해당 number가 수행해야 할 명령이 담겨 있다.                               \n
                     본 쓰레드에서는 client에서 수신한 명령을 해당 열처리로의 list에 push한다                                \n
@@ -292,17 +277,31 @@ def server_client(sock:socket.socket, datas:Datas, q:list, dbconn, lock):
 
 def server_outputReceiver(sock:socket.socket, end_queue:list, end_queue_lock:threading.Lock):
     """
-    sock(socket) : 소켓                                                                                                         \n
+    정상종료된 공정에 대한 정보를 전송
+    현재 시점에서 정상종료된 공정이 없다면, empty 메세지를 전송
+
+    sock(socket) : 소켓, output_receiver와 연결                                                                                  \n
     end_queue(list) : 정상적으로 종료된 공정에 대한 정보를 가져오기 위한 queue, list를 사용해 구현                                   \n
-                        [processId, mete, manu, inp, count, tempList, heattimeList, staytimeList, gas]가 list의 element     \n
-                        tempList, heattimeList, staytimeList 는 list                                                         \n
+                        [processId, mete, manu, inp, count, tempList, heattimeList, staytimeList, gas]가 list의 element         \n
+                        tempList, heattimeList, staytimeList 는 list                                                            \n
     end_queue_list(threading.lock) : end_queue에 접근할 때 (여기서는 pop) cirtical section이 발생하는 것을 막기 위함                \n
     """
+    #['02_2104031519', 'material3', 'process3', '500', 2, [150, 300, None, None, None, None, None, None, None, None], [15, 15, None, None, None, None, None, None, None, None], [15, 15, None, None, None, None, None, None, None, None], 'gas3']
     while True:
-        while end_queue:
+        end_queue_lock.acquire()
+        temp_len = len(end_queue)
+        end_queue_lock.release()
+
+        if temp_len == 0:
+            process_option_str = "empty"
+        else:
             end_queue_lock.acquire()
-            temp = end_queue.pop()
+            temp_process_option_list = end_queue.pop()
             end_queue_lock.release()
 
-            count = temp[4]
+            process_option_str = utils.change_process_option_to_str(temp_process_option_list)
             
+        sock.sendall(process_option_str.encode())
+        _ = sock.recv(1024)
+                
+        time.sleep(0.5)

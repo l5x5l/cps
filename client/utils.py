@@ -44,19 +44,6 @@ def make_current():
     current_time = hour + minute + second
     return current_time
 
-def change_current_to_seconds(current:str):
-    """
-    change time form "hhmmss" to seconds\n
-    current(str) : current time string, ex) 121036\n
-    return value(int) : total seconds of current\n
-    [example] 121036 -> 43836 seconds\n
-    """
-    current = int(current)
-    temp = (current // 10000) * 3600
-    temp += (current % 10000) // 100 * 60
-    temp += (current % 100)
-    return temp
-
 
 def get_total_time(heattimes, staytimes):
     total_time = 0
@@ -72,3 +59,21 @@ def sleep(n):
     loop = QtCore.QEventLoop()
     QtCore.QTimer.singleShot(int(n * 1000), loop.quit)
     loop.exec_()
+
+def change_str_to_process_option(process_option_str:str):
+    """
+    server의 utils.change_process_option_to_str의 반대버젼
+    하나의 str형식으로 이루어져있는 공정설정값들을 원래 형태로 변환시킨다
+    """
+    process_list = process_option_str.split('/')
+
+    process_list[4] = int(process_list[4])
+    process_list[5] = list(map(int,process_list[5].split('-')))
+    process_list[6] = list(map(int,process_list[6].split('-')))
+    process_list[7] = list(map(int,process_list[7].split('-')))
+
+    return process_list
+
+
+
+    

@@ -1,6 +1,11 @@
+import sys
 import time
+import subprocess
+import os
+
 import utils
 import parameter
+import output_receiver
 
 def monitoring(dbconn, furnace_pages, working_process = []):
     """
@@ -53,5 +58,26 @@ def monitoring(dbconn, furnace_pages, working_process = []):
             utils.sleep(parameter.time_interval - (time.time() - checkpoint))
             #time.sleep(parameter.time_interval - (time.time() - checkpoint))    #정확히 2초의 간격을 유지하기 위함
         
-        
     dbcur.close()
+
+def endprocess_survey(output_receiver:output_receiver.OutputReceiver):
+    """
+    server의 server_outputReceiver thread와 대응
+    정상 종료된 공정에 대한 정보를 받은 후 해당 정보를 exec의 인자로 전달
+
+    output_receiver : OutputReceiver instance
+    """
+
+    while True:
+        process_option_str = output_receiver.recv_msg()
+        output_receiver.send_msg('confirm msg')
+
+        if process_option_str == "empty":
+            continue
+        else:
+            pass
+            # pid = os.fork()
+            # #process_option_list = utils.change_str_to_process_option(process_option_str)
+            # if pid == 0:
+            #     sys.argv = process_option_str
+            #     subprocess.call(['.\\outputReceiver_main.py', process_option_str])

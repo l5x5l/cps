@@ -58,7 +58,9 @@ class Server(Device):
             dbconn = self.connect_db(parameter.user, parameter.password, parameter.db, parameter.charset)
             t = threading.Thread(target=thread.server_client, args=(conn_sock, self.datas, self.order_queue, dbconn, self.specific_furnace_lock))
             t.start()
-
+        elif confirm[0] == "output_receiver":
+            t = threading.Thread(target=thread.server_outputReceiver, args=(conn_sock, self.normal_end_queue, self.end_queue_lock))
+            t.start()
 
 # serv = Server(parameter.host, parameter.port, parameter.total_furnace, parameter.maximum_client)
 # while True:

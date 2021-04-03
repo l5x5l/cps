@@ -1,4 +1,4 @@
-from setting_content import SettingContent
+from settingPage import SettingPage
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 from PyQt5.QtGui import QPixmap
@@ -8,6 +8,7 @@ import time
 import json
 
 import client
+import output_receiver
 import button
 import parameter
 import furnacePage
@@ -15,6 +16,9 @@ import utils
 import thread
 
 class FurnaceSelectArea(QWidget):
+    """
+    homePage에서 열처리로 선택하는 부분(우측)
+    """
     def __init__(self, stk_w, sock):
         super().__init__()
         self.stk_w = stk_w
@@ -45,7 +49,7 @@ class FurnaceSelectArea(QWidget):
 
     def furnace_button_click(self, number:int):
         """
-        열처리로 선택 버튼 클릭시 이벤트
+        열처리로 선택 버튼 클릭시 이벤트함수
         """
         self.stk_w.setCurrentIndex(number)
         send_msg = 'num ' + str(number)         #server에 몇 번 열처리로를 선택했는지 알리는 역할
@@ -62,22 +66,23 @@ class FurnaceSelectArea(QWidget):
 
     
 class HomePage(QWidget):
-    def __init__(self, C, dbconn):
+    def __init__(self, Client, OutputReceiver, dbconn):
         super().__init__()
-        self.sock = C.sock
+        self.Client_instance = Client
+        self.OutputReceiver_instance = OutputReceiver
+        self.sock = Client.sock
         self.dbconn = dbconn
 
-        self.processes_id = []
-        #load combobox content from json file test
+        # qcombobox에 들어갈 값들을 json파일로부터 읽어옴
         with open(parameter.json_path, 'r') as combo_json:
             self.combo_opt = json.load(combo_json)
-            self.processes_id.append('-')
+        
         self.initUI()
 
 
     def initUI(self):
         self.setStyleSheet('background-color:white')
-        self.layout = QHBoxLayout()
+        self.mainlayout = QHBoxLayout()
         self.dyn_content = QStackedWidget()
 
         #setting area, where setting button, back button and icon image placed
@@ -111,21 +116,25 @@ class HomePage(QWidget):
             self.furnace_list.append(furnacePage.FurnaceContent(i+1, self.sock, self.dbconn, self.combo_opt))
             self.dyn_content.addWidget(self.furnace_list[i])
         
-        self.dyn_content.addWidget(SettingContent(self.combo_opt))
+        self.dyn_content.addWidget(SettingPage(self.combo_opt))
 
         #test area
         working_process = apply_exist_process(self.dbconn, self.furnace_list)
 
         #add working_process to monitoring
-        t = threading.Thread(target=thread.monitoring, args=(self.dbconn, self.furnace_list, working_process))
-        t.daemon = True
-        t.start()
+        monitoring = threading.Thread(target=thread.monitoring, args=(self.dbconn, self.furnace_list, working_process))
+        monitoring.daemon = True
+        monitoring.start()
 
-        #settting area | image area | furnace area
-        self.layout.addLayout(self.setting_area, 1)
-        self.layout.addWidget(self.dyn_content, 10)
+        #test area
+        endprocess_survey = threading.Thread(target=thread.endprocess_survey, args=(self.OutputReceiver_instance,))
+        endprocess_survey.daemon = True
+        endprocess_survey.start()
 
-        self.setLayout(self.layout)
+        self.mainlayout.addLayout(self.setting_area, 1)
+        self.mainlayout.addWidget(self.dyn_content, 10)
+
+        self.setLayout(self.mainlayout)
         self.setWindowTitle('CPS ProtoType')
         self.setGeometry(0, 0, parameter.width, parameter.height)
     
@@ -142,6 +151,8 @@ class HomePage(QWidget):
 
 def apply_exist_process(dbconn, furnace_pages):
     """
+    client를 실행하기 전 이미 진행중이던 공정에 대해 센서값들을 읽어와 변수에 할당
+
     dbconn(database connector)
     furnace_pagse(list) : list of furnacePage instance
     """

@@ -6,7 +6,7 @@ from PyQt5 import QtCore
 from PyQt5.QtWidgets import *
 from PyQt5.QtGui import QPixmap
 
-class SettingContent(QWidget):
+class SettingPage(QWidget):
     """
     setting page which modify qcombobox items in furnace pages
     """
@@ -158,15 +158,3 @@ class ConfirmWindow(QDialog):
     def showModel(self):
         return super().exec_()
 
-# if __name__ == "__main__":
-#     #C = client.Client(parameter.host, parameter.port)
-#     #C.connect()
-
-#     with open(parameter.json_path, 'r') as combo_json:
-#         combo_opt = json.load(combo_json)
-
-#     app = QApplication(sys.argv)
-#     form = SettingContent(combo_opt)
-#     form.show()
-
-#     sys.exit(app.exec_())

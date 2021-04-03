@@ -12,6 +12,7 @@ class OutputReceiver:
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.sock.connect(self.serv_addr)
         send_pkt = 'output_receiver'
+        self.send_msg(send_pkt)
         
     def recv_msg(self):
         msg = self.sock.recv(1024)

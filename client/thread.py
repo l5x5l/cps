@@ -18,7 +18,6 @@ def monitoring(dbconn, furnace_pages, working_process = []):
         checkpoint = time.time()    
         dbconn.commit()
         processes = utils.get_working_process(dbcur)
-        #print(f"testline in thread 22 {processes}")
         for i in range(len(processes)):
             if processes[i] == '-':     
                 if now_working_process[i] == '-':   # 공정이 존재하지 않은 경우
@@ -29,7 +28,6 @@ def monitoring(dbconn, furnace_pages, working_process = []):
                     dbcur.execute(sql)
                     result = dbcur.fetchall()
                     now_working_process[i] = processes[i]   
-                    #furnace_pages[i].sensor_area.clear()
                     if result[0][0] == 0:
                         furnace_pages[i].stop_process_nature()
 
@@ -49,9 +47,11 @@ def monitoring(dbconn, furnace_pages, working_process = []):
             furnace_pages[i].Update(sensors)
 
         if (time.time() - checkpoint) > parameter.time_interval:                #while문 내의 코드 실행이 2초 이상 지난 경우
-            time.sleep(parameter.time_interval)
+            utils.sleep(parameter.time_interval)
+            #time.sleep(parameter.time_interval)
         else:
-            time.sleep(parameter.time_interval - (time.time() - checkpoint))    #정확히 2초의 간격을 유지하기 위함
+            utils.sleep(parameter.time_interval - (time.time() - checkpoint))
+            #time.sleep(parameter.time_interval - (time.time() - checkpoint))    #정확히 2초의 간격을 유지하기 위함
         
         
     dbcur.close()

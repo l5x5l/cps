@@ -14,7 +14,7 @@ import furnacePage
 import utils
 import thread
 
-class Select(QWidget):
+class FurnaceSelectArea(QWidget):
     def __init__(self, stk_w, sock):
         super().__init__()
         self.stk_w = stk_w
@@ -28,7 +28,7 @@ class Select(QWidget):
         self.image_area.setPixmap(QPixmap(".\\images\\furnaces.png"))
         
 
-        #furnace area, where furnace button placed
+        # 열처리로 선택버튼을 열처리로의 개수만큼 생성
         self.furnace_area = QGridLayout()
         furnace_buttons = []
         for i in range(parameter.total_furnace): 
@@ -38,14 +38,17 @@ class Select(QWidget):
             furnace_buttons[i].clicked.connect(lambda checked, index=i:self.furnace_button_click(index+1))
             self.furnace_area.addWidget(furnace_buttons[i], i // 2, i % 2)  
 
-        #except setting area
+        # 메인 레이아웃에 결합
         self.layout.addWidget(self.image_area)
         self.layout.addLayout(self.furnace_area)
         self.setLayout(self.layout)
 
     def furnace_button_click(self, number:int):
+        """
+        열처리로 선택 버튼 클릭시 이벤트
+        """
         self.stk_w.setCurrentIndex(number)
-        send_msg = 'num ' + str(number)
+        send_msg = 'num ' + str(number)         #server에 몇 번 열처리로를 선택했는지 알리는 역할
         self.sock.sendall(send_msg.encode())
 
         recv_msg = self.sock.recv(1024).decode()
@@ -97,7 +100,7 @@ class HomePage(QWidget):
         self.setting_area.addWidget(back_button, 1)
 
         #changeable area
-        self.content_area = Select(self.dyn_content, self.sock)
+        self.content_area = FurnaceSelectArea(self.dyn_content, self.sock)
 
         # for i in range(parameter.total_furnace):
         #     self.content_area.furnace_area.itemAt(i).set

@@ -11,18 +11,18 @@ class Client:
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.sock.connect(self.serv_addr)
         send_pkt = 'client'
-        self.send_msg(send_pkt, self.sock)
+        self.send_msg(send_pkt)
 
-    def recv_msg(self, sock:socket.socket):
-        msg = sock.recv(1024)
+    def recv_msg(self):
+        msg = self.sock.recv(1024)
         return msg.decode()
 
-    def send_msg(self, msg, sock:socket.socket):
+    def send_msg(self, msg):
         if type(msg) is bytes:
-            sock.sendall(msg)
+            self.sock.sendall(msg)
         elif type(msg) is str:
             msg = msg.encode()
-            sock.sendall(msg)
+            self.sock.sendall(msg)
 
     def close(self):
         self.sock.close()

@@ -245,12 +245,9 @@ class FurnaceContent(QWidget):
             elem.setEnabled(False)
         for elem in self.base_able:
             elem.setEnabled(True)        
-        
 
         self.set_base_button.setEnabled(True)
-
         self.set_base_button.set_state_start()
-
         self.set_detail_button.set_state_start()
 
 

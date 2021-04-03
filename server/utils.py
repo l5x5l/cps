@@ -25,3 +25,11 @@ def make_process_id(number:int):
     process_id = '{:02d}'.format(int(number)) + '_' + str(now.year)[-2:] + month + day + hour + minute
 
     return process_id
+
+def change_process_option_to_str(process_setting:list):
+    """
+    processId, mete, manu, inp, count, tempList, heattimeList, staytimeList, gas를 하나의 str로 변환\n
+    tempList, heattimeList, staytimeList는 10의 크기를 가지며, count의 개수만큼 실제 값을 가지며 10-count만큼은 Null값을 가지고 있다.\n
+    """
+    
+    pass

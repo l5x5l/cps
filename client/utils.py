@@ -1,5 +1,6 @@
 import datetime
 import parameter
+from PyQt5 import QtCore
 
 def get_working_process(dbcur):
     """
@@ -63,3 +64,11 @@ def get_total_time(heattimes, staytimes):
         total_time += int(heattimes[i])
         total_time += int(staytimes[i])
     return total_time
+
+def sleep(n):
+    """
+    wait function
+    """
+    loop = QtCore.QEventLoop()
+    QtCore.QTimer.singleShot(int(n * 1000), loop.quit)
+    loop.exec_()

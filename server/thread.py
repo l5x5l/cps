@@ -5,7 +5,6 @@ import pymysql
 import utils
 from packet import *
 from data import Datas
-import time as t
 
 def check_process(dbcur, process_id):
     """
@@ -24,24 +23,25 @@ def check_process(dbcur, process_id):
 
 def server_furnace(sock:socket.socket, number:int, datas:Datas, order_queue:list, dbconn, specific_lock:threading.Lock, end_queue:list, end_queue_lock:threading.Lock):
     """
-    server's thread which connected with furnace\n
-    socket(socket.socket) : 열처리로와 연결한 socket\n
-    number(int) : 열처리로의 번호\n
-    datas(Datas class) : 열처리로의 상태, 해당 열처리로가 진행하고 있는 공정에 대한 정보를 담고 있는 instance\n
-    order_queue(list) : 해당 열처리로가 수행해야할 명령(공정시작, 공정수정, 공정중지)이 담긴 queue, 근데 list를 사용해서 구현한 \n
-              본 쓰레드에서는 queue에 담긴 명령을 하나씩 pop해서 수행한다.\n
-    dbconn(database connector) : 데이터베이스에 센서값을 저장하는데 사용\n
-    specific_lock(threading.lock) : datas[number - 1], order_queue[number - 1]에 접근할 때 critical section이 발생하는 것을 막기 위해 사용\n
-    end_queue(list) : 정상적으로 종료된 공정의 정보를 담을 queue, list를 사용하여 구현하였음\n
-                    [process_id, mete, manu, inp, count, temp_list, heattime_list, staytime_list, gas]가 list의 element
-    end_queue_lock(threading.lock) : end_queue에 접근할 때 critical section이 발생하는 것을 막기 위해 사용\n
+    server's thread which connected with furnace                                                                                           \n
+    socket(socket.socket) : 열처리로와 연결한 socket                                                                                        \n
+    number(int) : 열처리로의 번호                                                                                                           \n
+    datas(Datas class) : 열처리로의 상태, 해당 열처리로가 진행하고 있는 공정에 대한 정보를 담고 있는 instance                                   \n
+    order_queue(list) : 해당 열처리로가 수행해야할 명령(공정시작, 공정수정, 공정중지)이 담긴 queue, 근데 list를 사용해서 구현한                   \n
+              본 쓰레드에서는 queue에 담긴 명령을 하나씩 pop해서 수행한다.                                                                     \n
+    dbconn(database connector) : 데이터베이스에 센서값을 저장하는데 사용                                                                       \n
+    specific_lock(threading.lock) : datas[number - 1], order_queue[number - 1]에 접근할 때 critical section이 발생하는 것을 막기 위해 사용     \n
+    end_queue(list) : 정상적으로 종료된 공정의 정보를 담을 queue, list를 사용하여 구현하였음                                                    \n
+                    [process_id, mete, manu, inp, count, temp_list, heattime_list, staytime_list, gas]가 list의 element                     \n
+                    temp_list, heattime_list, staytime_list 는 list                                                                         \n
+    end_queue_lock(threading.lock) : end_queue에 접근할 때 critical section이 발생하는 것을 막기 위해 사용                                      \n
 
-    큰 구조는 아래와 같다\n
-    while:\n
-        \t공정시작신호를 받을 때까지 while:\n
-            \t\t~~~~~~\n
-        \t공정이 종료될 때까지 while:\n
-            \t\t~~~~~~\n
+    큰 구조는 아래와 같다                                                                                                                     \n
+    while:                                                                                                                                  \n
+        \t공정시작신호를 받을 때까지 while:                                                                                                    \n
+            \t\t~~~~~~                                                                                                                      \n
+        \t공정이 종료될 때까지 while:                                                                                                         \n
+            \t\t~~~~~~                                                                                                                       \n
     """
     dbcur = dbconn.cursor()
     process_id = ''
@@ -161,9 +161,9 @@ def server_furnace(sock:socket.socket, number:int, datas:Datas, order_queue:list
             #모든 공정과정이 끝난 경우(정상종료)
             #중지신호를 열처리로에 전송하는 비정상종료와는 다르게, 열처리로 자체에서 종료 처리를 하므로 중지신호를 보낼 필요가 없다
             if last == 'True':
-                # end_queue_lock.acquire()
-                # end_queue.append([process_id, mete, manu, inp, count, temp_list, heattime_list, staytime_list, gas])
-                # end_queue_lock.release()
+                end_queue_lock.acquire()
+                end_queue.append([process_id, mete, manu, inp, count, temp_list, heattime_list, staytime_list, gas])
+                end_queue_lock.release()
                 sql = "UPDATE process SET output = %s WHERE id = %s"
                 val = (int(0), process_id)
                 dbcur.execute(sql, val)
@@ -178,17 +178,16 @@ def server_furnace(sock:socket.socket, number:int, datas:Datas, order_queue:list
     sock.close()
 
 
-
 def server_client(sock:socket.socket, datas:Datas, q:list, dbconn, lock):
     """
-    server's thread which connected with client(=monitoring program)\n
-    sock(socket.socket) : 클라이언트와 연결한 socket\n
-    datas(Datas class) : 열처리로의 상태, 해당 열처리로가 진행하고 있는 공정에 대한 정보를 담고 있는 instance\n
-    q(list[list]) : 열처리로의 개수만큼의 list를 가지고 있는 queue, (queue는 리스트로 사용)\n
-                    q의 number - 1번째 인덱스에는 해당 number가 수행해야 할 명령이 담겨 있다.\n
-                    본 쓰레드에서는 client에서 수신한 명령을 해당 열처리로의 list에 push한다\n
-    dbconn(database connector) : 데이터베이스에 센서값을 저장하는데 사용\n
-    lock(threading.lock) : datas, q에 접근할 때 critical section이 발생하는 것을 막기 위해 사용\n
+    server's thread which connected with client(=monitoring program)                                                    \n
+    sock(socket.socket) : 클라이언트와 연결한 socket                                                                    \n
+    datas(Datas class) : 열처리로의 상태, 해당 열처리로가 진행하고 있는 공정에 대한 정보를 담고 있는 instance               \n
+    q(list[list]) : 열처리로의 개수만큼의 list를 가지고 있는 queue, (queue는 리스트로 사용)                                 \n
+                    q의 number - 1번째 인덱스에는 해당 number가 수행해야 할 명령이 담겨 있다.                               \n
+                    본 쓰레드에서는 client에서 수신한 명령을 해당 열처리로의 list에 push한다                                \n
+    dbconn(database connector) : 데이터베이스에 센서값을 저장하는데 사용                                                   \n
+    lock(threading.lock) : datas, q에 접근할 때 critical section이 발생하는 것을 막기 위해 사용                            \n
     """
     dbcur = dbconn.cursor()
     order_list = []
@@ -286,9 +285,24 @@ def server_client(sock:socket.socket, datas:Datas, q:list, dbconn, lock):
             temp = None
 
             sock.sendall(parameter.success_str.encode())
-        elif recv_msg_list[0] == "starttime":   # 공정의 시작 시간 요청
-            pass
         else:      #그 외 이상한 명령이 수신된 경우
             sock.sendall((parameter.error_str + '_wrong msg type' + recv_msg_list[0]).encode())
     sock.close()
 
+
+def server_outputReceiver(sock:socket.socket, end_queue:list, end_queue_lock:threading.Lock):
+    """
+    sock(socket) : 소켓                                                                                                         \n
+    end_queue(list) : 정상적으로 종료된 공정에 대한 정보를 가져오기 위한 queue, list를 사용해 구현                                   \n
+                        [processId, mete, manu, inp, count, tempList, heattimeList, staytimeList, gas]가 list의 element     \n
+                        tempList, heattimeList, staytimeList 는 list                                                         \n
+    end_queue_list(threading.lock) : end_queue에 접근할 때 (여기서는 pop) cirtical section이 발생하는 것을 막기 위함                \n
+    """
+    while True:
+        while end_queue:
+            end_queue_lock.acquire()
+            temp = end_queue.pop()
+            end_queue_lock.release()
+
+            count = temp[4]
+            

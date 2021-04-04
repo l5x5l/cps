@@ -11,8 +11,9 @@ import RecvOutputWindow
 if __name__ == "__main__":
     app = QApplication(sys.argv)
 
-    #form = RecvOutputWindow.RecvOutputWindow(sys.argv[1])
-    form = RecvOutputWindow.RecvOutputWindow('07_2104032021/material2/process1/500/3/150-300-500/15-15-15/15-15-15/gas2')
+    form = RecvOutputWindow.RecvOutputWindow(sys.argv[1])
+    #단순히 UI만을 테스트하기 위한 임시값
+    #form = RecvOutputWindow.RecvOutputWindow('07_2104032021/material2/process1/500/3/150-300-500/15-15-15/15-15-15/gas2')
     form.show()
 
     sys.exit(app.exec_())

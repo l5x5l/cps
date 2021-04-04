@@ -47,7 +47,7 @@ def monitoring(dbconn, furnace_pages, working_process = []):
                 continue
             
             sensors = list(sensors[0])
-            furnace_pages[i].Update(sensors)
+            furnace_pages[i].signal(sensors)
 
         if (time.time() - checkpoint) > parameter.time_interval:                #while문 내의 코드 실행이 2초 이상 지난 경우
             utils.sleep(parameter.time_interval)

@@ -24,7 +24,7 @@ class FurnaceContent(QWidget):
 
     layout = main layout of FuranceContent
     """
-    def __init__(self, furnace_number:int, sock, dbconn, combo_opt):
+    def __init__(self, furnace_number:int, sock, dbconn, combo_opt):    #dbconn 여기서 안쓴다
         super().__init__()
         self.setting_popup = None
         self.number = furnace_number

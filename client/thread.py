@@ -1,8 +1,6 @@
 import sys
 import time
 import subprocess
-import os
-
 import utils
 import parameter
 import output_receiver
@@ -75,9 +73,5 @@ def endprocess_survey(output_receiver:output_receiver.OutputReceiver):
         if process_option_str == "empty":
             continue
         else:
-            pass
-            # pid = os.fork()
-            # #process_option_list = utils.change_str_to_process_option(process_option_str)
-            # if pid == 0:
-            #     sys.argv = process_option_str
-            #     subprocess.call(['.\\outputReceiver_main.py', process_option_str])
+            print(f"testcase {process_option_str}")
+            subprocess.call([sys.executable, '.\\outputReceiver_main.py', process_option_str])

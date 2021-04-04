@@ -2,6 +2,7 @@ from PyQt5.QtWidgets import *
 from PyQt5.QtGui import QPixmap
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
+from pyqtgraph import PlotWidget, mkPen, ViewBox, InfiniteLine
 import numpy as np
 
 
@@ -164,7 +165,7 @@ class SettingPlotCanvas(FigureCanvas):
     """
     plot which represents detail temperature and time setting 
     """
-    def __init__(self, parent=None, width = 5, height = 4, dpi = 100):
+    def __init__(self, parent=None):
         self.fig = Figure()
         self.ax = self.fig.add_subplot(111, xlim=(0,50), ylim=(0,1000))
         self.compute_initial_figure()
@@ -181,7 +182,7 @@ class SettingPlot(QWidget):
     def __init__(self):
         QMainWindow.__init__(self)
         self.base_box = QVBoxLayout()
-        self.canvas = SettingPlotCanvas(self, 10, 8, 100)
+        self.canvas = SettingPlotCanvas(self)
         self.plot, = self.canvas.ax.plot([0],[0], animated=False)
         self.base_box.addWidget(self.canvas)
         self.setLayout(self.base_box)
@@ -199,4 +200,28 @@ class SettingPlot(QWidget):
         
     def clear(self):
         self.canvas.ax.clear()
-        
+
+
+class SettingPlot2(PlotWidget):
+    def __init__(self):
+        super().__init__()
+        #self.enableAutoRange(axis='x')
+        self.setMouseEnabled(y=False, x = False)
+        self.setBackground('w')
+        # self.showGrid(x = True, alpha = 0.3)
+        self.pen = mkPen(width=2, color=(200, 200, 255))
+
+    def update(self, x, y, elapse_time=None):
+        self.clear()
+        if elapse_time:
+            vertical_line = InfiniteLine(pos=elapse_time, angle=90, pen='r')
+            self.addItem(vertical_line)
+        self.plot(x, y, pen=self.pen)
+
+    def clear(self):
+        self.clear()
+# import sys
+# if __name__ == "__main__":
+#     app = QApplication(sys.argv)
+#     s = SettingPlot2()
+#     sys.exit(app.exec_())

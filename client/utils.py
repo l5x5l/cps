@@ -74,6 +74,14 @@ def change_str_to_process_option(process_option_str:str):
 
     return process_list
 
+def make_plot_data(count:int, tempList:list, heattimeList:list, staytimeList:list):
+    plot_time = [0]
+    plot_temp = [0]
 
+    for i in range(count):
+        plot_temp.append(tempList[i])
+        plot_temp.append(tempList[i])
+        plot_time.append(heattimeList[i] + plot_time[-1])
+        plot_time.append(staytimeList[i] + plot_time[-1])
 
-    
+    return plot_temp, plot_time

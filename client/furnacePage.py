@@ -58,7 +58,7 @@ class FurnaceContent(QWidget):
         self.right_area = QVBoxLayout()
         
         #right_area의 하단부에 위치할 공정 세부설정의 그래프
-        self.setting_graph = plot.SettingPlot()
+        self.setting_graph = plot.SettingPlot2()
 
 
         state_text = QLabel()
@@ -316,7 +316,7 @@ class SubWindow(QDialog):
 
         #time and temper graph area
         self.graph_area = QVBoxLayout()
-        self.setting_graph = plot.SettingPlot()
+        self.setting_graph = plot.SettingPlot2()
         btn_graph_renew = QPushButton(parameter.show_temper_time_str)
         btn_graph_renew.clicked.connect(self.RenewGraph)
         self.graph_area.addWidget(self.setting_graph, 9)

@@ -143,7 +143,6 @@ class Detail_Button(QPushButton):
 
         loader = loadingGif.LoadingGif()
         recv_msg = sock.recv(1024).decode()
-        print(f"testline in button 145 : {recv_msg}")
         loader.stopAnimation()
 
         if self.now_start_button and not self.is_process_wokring:

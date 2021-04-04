@@ -21,7 +21,6 @@ class SensorPlot(PlotWidget):
         self.plot(current_time, sensorData, pen=self.pen)
 
 
-
 class SensorArea(QWidget):
     def __init__(self):
         QMainWindow.__init__(self)

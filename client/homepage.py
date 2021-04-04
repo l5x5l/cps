@@ -121,11 +121,6 @@ class HomePage(QWidget):
         #test area
         working_process = apply_exist_process(self.dbconn, self.furnace_list)
 
-        # #add working_process to monitoring
-        # self.monitoring_thread = threading.Thread(target=thread.monitoring, args=(self.dbconn, self.furnace_list, working_process))
-        # self.monitoring_thread.daemon = True
-        # self.monitoring_thread.start()
-
         #add working_process to monitoring
         self.monitoring_thread = thread.Monitoring(self.dbconn, working_process)
         self.monitoring_thread.update_sensor.connect(self.update_signal_function)
@@ -133,9 +128,7 @@ class HomePage(QWidget):
         self.monitoring_thread.clear_signal.connect(self.clear_signal_function)
         self.monitoring_thread.start()
 
-        #test area
-        self.endprocess_survey = threading.Thread(target=thread.endprocess_survey, args=(self.OutputReceiver_instance,))
-        self.endprocess_survey.daemon = True
+        self.endprocess_survey = thread.EndprocessSurvey(self.OutputReceiver_instance)
         self.endprocess_survey.start()
 
         self.mainlayout.addLayout(self.setting_area, 1)
@@ -151,7 +144,6 @@ class HomePage(QWidget):
 
         recv_msg = self.sock.recv(1024).decode()
 
-
     def set_button_click(self):
         self.dyn_content.setCurrentIndex(parameter.total_furnace + 1)
 
@@ -163,6 +155,7 @@ class HomePage(QWidget):
     
     def clear_signal_function(self, index):
         self.furnace_list[index].sensor_area.clear()
+
 
 def apply_exist_process(dbconn, furnace_pages):
     """

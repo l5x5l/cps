@@ -290,8 +290,6 @@ class FurnaceContent(QWidget):
         if self.process_info["starttime"]:
             temp_diff = utils.get_elapsed_time(self.process_info["starttime"])
         self.sensor_area.update(sensors)
-        print(self.setting_graph_time_list)
-        print(temp_diff)
         self.setting_graph.update(self.setting_graph_time_list, self.setting_graph_temp_list, temp_diff)
 
     def signal(self, sensors):

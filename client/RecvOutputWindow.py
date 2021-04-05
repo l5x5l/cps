@@ -1,14 +1,10 @@
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import QCoreApplication 
-import output_receiver
 import plot
 import sys
 import utils
 
 class RecvOutputWindow(QWidget):
-    """
-    
-    """
     def __init__(self, process_option_str:str):
         super().__init__()
 

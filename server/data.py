@@ -40,29 +40,3 @@ class Datas:
         else:
             return True, (str(number) + "'s option is " + option)
 
-
-#이건 클라이언트에서 센서값을 실시간으로 담아두기 위해 사용
-class Sensors:
-    def __init__(self, total_furnace:int):
-        self.total = total_furnace
-        self.sensors = []
-        for i in range(self.total):
-            self.sensors.append([])
-        
-
-    def set_first(self, sensors:list, index:int):
-        self.sensors[index] = sensors
-        
-
-    def renew(self, sensor):
-        for i in range(self.total):
-            if len(self.sensors[i]) >= 30:
-                self.sensors[i][:-1] = self.sensors[i][1:]
-                self.sensors[i][-1] = sensor[i]
-            else:
-                self.sensors[i].append(sensor[i])
-
-    
-    def get_sensor(self, number):
-        index = number - 1
-        return self.sensors[index]

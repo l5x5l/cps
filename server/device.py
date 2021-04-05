@@ -13,7 +13,7 @@ class Device(metaclass=ABCMeta):
         pass
 
 
-    def recv_msg(self, sock:socket.socket) -> str:
+    def recv_msg(self, sock:socket.socket):
         msg = sock.recv(1024)
         return msg.decode()
 

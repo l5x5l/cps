@@ -15,8 +15,7 @@ class FurnaceContent(QWidget):
     """
     stacked page which represents furnace's state
 
-    setting_popup = 
-     temperature and time setting popup page
+    setting_popup = temperature and time setting popup page
 
     number = furnace number
     sock = socket (used when communicate with server)
@@ -267,7 +266,7 @@ class FurnaceContent(QWidget):
             self.sensor_area.middle_area.itemAt(0).widget().setText(f"furnace{self.number} is on")
         elif state == 'working':
             self.process_info["id"] = process_id
-            self.sensor_area.middle_area.itemAt(0).widget().setText(f""""furnace{self.number} is working : {self.process_info["id"]}\n""")
+            self.sensor_area.middle_area.itemAt(0).widget().setText(f"""furnace{self.number} is working : {self.process_info["id"]}\n""")
         elif state == '-':
             self.clear_UI()
             self.sensor_area.middle_area.itemAt(0).widget().setText(f"furnace{self.number} is off")
